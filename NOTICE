@@ -1,0 +1,51 @@
+rhwp-mcp-server
+Copyright (c) 2026 rhwp-mcp-server contributors
+Licensed under the MIT License — see LICENSE for details.
+
+================================================================================
+THIRD-PARTY ATTRIBUTIONS
+================================================================================
+
+This project depends on the following third-party software:
+
+--------------------------------------------------------------------------------
+@rhwp/core
+--------------------------------------------------------------------------------
+  Upstream: https://github.com/edwardkim/rhwp
+  Homepage: https://edwardkim.github.io/rhwp/
+  npm:      https://www.npmjs.com/package/@rhwp/core
+  License:  MIT
+  Role:     HWP / HWPX parser + serializer + renderer (Rust + WebAssembly).
+            All file I/O, field operations, action execution, and rendering
+            in this MCP server delegate to @rhwp/core. Any bugs in HWP / HWPX
+            round-trip, field handling, or rendering should be reported
+            upstream when reproducible there.
+
+--------------------------------------------------------------------------------
+@modelcontextprotocol/sdk
+--------------------------------------------------------------------------------
+  Upstream: https://github.com/modelcontextprotocol/typescript-sdk
+  License:  MIT
+  Role:     Provides the MCP server scaffolding (McpServer + StdioServerTransport)
+            and tool / resource registration primitives.
+
+--------------------------------------------------------------------------------
+zod, zod-to-json-schema
+--------------------------------------------------------------------------------
+  License:  MIT
+  Role:     Input / output schema validation, JSON Schema generation for the
+            tool catalog and CI schema-diff guard.
+
+================================================================================
+HWP / HWPX FORMAT NOTICE
+================================================================================
+
+HWP (Hangul Word Processor) is a document format historically associated with
+Hancom Inc. HWPX is the OWPML XML-based open standard for the same format
+family. This project does not bundle or distribute any Hancom-proprietary
+binaries; all format handling is performed by @rhwp/core, an independent
+open-source implementation.
+
+Korean form / template files in any corpus/ subdirectory are referenced for
+testing and are subject to the licensing terms of their original sources;
+see corpus/SOURCES.md for provenance details.

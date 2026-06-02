@@ -1,0 +1,12 @@
+# scenarios/
+
+Demo scenario scripts + recordings. Five scenarios per the plan's Sprint 3 /
+Sprint 3.5 gates:
+
+- `01-resume-fill.md`              (Form persona)
+- `02-meeting-notes.md`            (Authoring persona)
+- `03-one-page-report.md`          (Authoring persona)
+- `04-bulk-official-letters.md`    (Form persona)
+- `05-hwp-to-hwpx-roundtrip.md`    (Compatibility persona)
+
+`recordings/` holds the screen captures referenced by Sprint exit criteria.

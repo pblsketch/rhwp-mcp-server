@@ -1,0 +1,10 @@
+# docs/measurements/
+
+Quantitative outputs from Sprint 0 probes. Populated by:
+
+- `scripts/measure-tool-tokens.ts` → `tool-description-tokens.txt`
+- `scripts/probe-rhwp-fields.ts`   → `rhwp-field-api.md`
+- `scripts/probe-renderer.ts`      → `image-renderer-probe.md` (Sprint 0 step 7)
+- TBD (Sprint 1)                   → `sprint-1-binomial-note.md`
+
+These files are committed so reviewers can audit decisions without rerunning probes.

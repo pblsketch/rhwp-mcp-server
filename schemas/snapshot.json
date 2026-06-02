@@ -1,0 +1,244 @@
+{
+  "$comment": "Seed snapshot — hand-derived from src/tools/*.ts zod schemas. After `npm install`, regenerate via `npm run schema:snapshot` to produce the canonical machine-derived form. CI uses scripts/schema-diff.ts to compare the live tool schemas against this snapshot per PR.",
+  "version": "0.1.0-alpha.0",
+  "generated_by": "manual-seed",
+  "generated_at": "2026-06-02T00:00:00Z",
+  "tool_count_expected": 10,
+  "tools": {
+    "hwp_open": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "format", "page_count"],
+        "properties": {
+          "ok": { "const": true },
+          "format": { "enum": ["hwp", "hwpx"] },
+          "page_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "hwp_save_as": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "format": { "enum": ["hwpx", "hwp"], "default": "hwpx" }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "path", "format", "bytes_written"],
+        "properties": {
+          "ok": { "const": true },
+          "path": { "type": "string" },
+          "format": { "enum": ["hwpx", "hwp"] },
+          "bytes_written": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "hwp_list_fields": {
+      "input": { "type": "object", "additionalProperties": false, "properties": {} },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fields"],
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "type", "current_value"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "current_value": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hwp_fill_fields": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["map"],
+        "properties": {
+          "map": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "filled", "skipped"],
+        "properties": {
+          "ok": { "const": true },
+          "filled": { "type": "array", "items": { "type": "string" } },
+          "skipped": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "hwp_insert_text": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string" },
+          "style": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "font_size": { "type": "number", "exclusiveMinimum": 0 },
+              "bold": { "type": "boolean" },
+              "italic": { "type": "boolean" },
+              "underline": { "type": "boolean" },
+              "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+              "font_family": { "type": "string" }
+            }
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "chars_inserted"],
+        "properties": {
+          "ok": { "const": true },
+          "chars_inserted": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "hwp_create_table": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rows", "cols"],
+        "properties": {
+          "rows": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "cols": { "type": "integer", "minimum": 1, "maximum": 50 },
+          "data": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "rows", "cols", "cells_filled"],
+        "properties": {
+          "ok": { "const": true },
+          "rows": { "type": "integer" },
+          "cols": { "type": "integer" },
+          "cells_filled": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "hwp_set_paragraph_style": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["style"],
+        "properties": {
+          "style": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "alignment": { "enum": ["left", "center", "right", "justify"] },
+              "indent_first": { "type": "number" },
+              "indent_left": { "type": "number" },
+              "indent_right": { "type": "number" },
+              "line_spacing": { "type": "number", "exclusiveMinimum": 0 },
+              "space_before": { "type": "number" },
+              "space_after": { "type": "number" }
+            }
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok"],
+        "properties": { "ok": { "const": true } }
+      }
+    },
+    "hwp_preview": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "page": { "type": "integer", "minimum": 1, "default": 1 }
+        }
+      },
+      "output_shape_note": "Returns MCP image content (type: 'image', mimeType: 'image/png', data: base64) rather than a structuredContent payload. No outputSchema."
+    },
+    "hwp_apply_action": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "params": { "type": "object", "additionalProperties": true, "default": {} }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "name"],
+        "properties": {
+          "ok": { "const": true },
+          "name": { "type": "string" },
+          "result": {}
+        }
+      }
+    },
+    "hwp_list_actions": {
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": ["text", "table", "paragraph", "style", "header_footer", "page", "field", "image", "math", "chart", "all"],
+            "default": "all"
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["actions", "total"],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "category", "description", "params_schema"],
+              "properties": {
+                "name": { "type": "string" },
+                "category": { "type": "string" },
+                "description": { "type": "string" },
+                "params_schema": {}
+              }
+            }
+          },
+          "total": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

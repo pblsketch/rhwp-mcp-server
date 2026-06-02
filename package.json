@@ -1,0 +1,61 @@
+{
+  "name": "rhwp-mcp-server",
+  "version": "0.1.0-alpha.0",
+  "description": "MCP server for Korean HWP/HWPX documents — read, fill form fields, author new docs, preview — powered by @rhwp/core (Rust + WebAssembly).",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "bin": {
+    "rhwp-mcp": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:diff": "tsx scripts/schema-diff.ts",
+    "schema:snapshot": "tsx scripts/schema-snapshot.ts",
+    "measure:tokens": "tsx scripts/measure-tool-tokens.ts",
+    "probe:fields": "tsx scripts/probe-rhwp-fields.ts",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\""
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "hwp",
+    "hwpx",
+    "hancom",
+    "hangul",
+    "한글",
+    "korean",
+    "form-filling",
+    "document-automation",
+    "rhwp"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rhwp/core": "^0.7.13",
+    "zod": "^3.25.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "markdownlint-cli2": "^0.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

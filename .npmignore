@@ -1,0 +1,51 @@
+# Whitelist approach: publish only the files listed in package.json "files" field.
+# This file exists as a safety net to ensure source / test / planning artifacts
+# never leak into the published package even if "files" is misconfigured.
+
+# Source — published artifact uses dist/ instead
+src/
+tests/
+scripts/
+
+# Build inputs
+tsconfig.json
+.gitignore
+.npmignore
+
+# CI / tooling
+.github/
+.vscode/
+.idea/
+
+# Tests
+coverage/
+.nyc_output/
+*.test.ts
+
+# Planning / state
+.omc/
+prd.json
+progress.txt
+
+# Corpus / scenarios / docs (excluded — too large for npm)
+corpus/
+scenarios/
+docs/
+
+# Logs / temp
+*.log
+*.tmp
+tmp/
+.tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+
+# Bundled hand-off archives
+rhwp-mcp-server-*.tar.gz
+rhwp-mcp-server-*.zip

@@ -1,0 +1,7 @@
+# corpus/forms/
+
+Korean HWP / HWPX form files used by `scripts/corpus-runner.ts` for Sprint 1
+and Sprint 3 round-trip validation. See `../SOURCES.md` for provenance and
+the per-file failure-mode classification.
+
+Files are checked in here only after PII scrubbing.

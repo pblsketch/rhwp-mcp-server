@@ -1,0 +1,19 @@
+Tool description token measurement
+Generated: 2026-06-02T12:33:41.719Z
+Threshold: 8000 tokens
+Estimation: char/4 approximation (conservative for ko+en mixed)
+
+Per-tool breakdown:
+  hwp_open                         230 tok  (917 chars)
+  hwp_save_as                      255 tok  (1019 chars)
+  hwp_list_fields                  201 tok  (801 chars)
+  hwp_fill_fields                  254 tok  (1014 chars)
+  hwp_insert_text                  276 tok  (1104 chars)
+  hwp_create_table                 293 tok  (1169 chars)
+  hwp_set_paragraph_style          242 tok  (966 chars)
+  hwp_preview                      137 tok  (546 chars)
+  hwp_apply_action                 250 tok  (998 chars)
+  hwp_list_actions                 253 tok  (1010 chars)
+
+TOTAL: 2391 tokens / 9544 chars
+PASS — 5609 tokens of headroom
