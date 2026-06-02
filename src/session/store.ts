@@ -11,19 +11,20 @@
  * users of the same server binary each have their own process and therefore
  * their own session. Race conditions inside a single process are precluded
  * by the JSON-RPC framing of MCP: tool calls are serialised per connection.
+ *
+ * Sprint 1 narrows the held type from `unknown` to `HwpDocumentLike` so
+ * tool handlers see the rhwp surface they actually call (getFieldList /
+ * setFieldValueByName / exportHwpx / etc.) without leaking `any`.
  */
 
 import { RhwpError } from "../rhwp/errors.js";
+import type { HwpDocumentLike } from "../rhwp/types.js";
 
-/**
- * Opaque type for whatever rhwp returns from its parse path. Typed as
- * `unknown` because the actual @rhwp/core 0.7.x document shape is one of
- * the items being verified during the Sprint 0 probe (Open Q5).
- */
-export type RhwpDocument = unknown;
+/** Public alias retained for any caller that already imported this name. */
+export type RhwpDocument = HwpDocumentLike;
 
 export class SessionStore {
-  private currentDocument: RhwpDocument | null = null;
+  private currentDocument: HwpDocumentLike | null = null;
   private sourcePath: string | null = null;
   private sourceFormat: "hwp" | "hwpx" | null = null;
 
@@ -31,7 +32,7 @@ export class SessionStore {
    * Replace the current document. Discards any previously held document
    * (caller is responsible for saving before swapping).
    */
-  set(doc: RhwpDocument, opts: { sourcePath: string; sourceFormat: "hwp" | "hwpx" }): void {
+  set(doc: HwpDocumentLike, opts: { sourcePath: string; sourceFormat: "hwp" | "hwpx" }): void {
     this.currentDocument = doc;
     this.sourcePath = opts.sourcePath;
     this.sourceFormat = opts.sourceFormat;
@@ -42,7 +43,7 @@ export class SessionStore {
    * code=NO_DOCUMENT) if none is open — this is the canonical error tools
    * surface when the LLM calls e.g. `hwp_fill_fields` before `hwp_open`.
    */
-  get(): RhwpDocument {
+  get(): HwpDocumentLike {
     if (this.currentDocument === null) {
       throw new RhwpError({
         category: "session",

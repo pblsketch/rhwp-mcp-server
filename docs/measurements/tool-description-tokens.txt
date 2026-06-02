@@ -1,5 +1,5 @@
 Tool description token measurement
-Generated: 2026-06-02T12:33:41.719Z
+Generated: 2026-06-02T14:10:43.714Z
 Threshold: 8000 tokens
 Estimation: char/4 approximation (conservative for ko+en mixed)
 

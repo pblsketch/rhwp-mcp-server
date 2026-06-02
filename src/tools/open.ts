@@ -1,6 +1,13 @@
+import { readFileSync, statSync } from "node:fs";
+import { extname } from "node:path";
+
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { RhwpError } from "../rhwp/errors.js";
+
+import { getRhwp } from "../rhwp/loader.js";
+import { RhwpError, wrapPanic } from "../rhwp/errors.js";
+import type { RhwpModuleLike } from "../rhwp/types.js";
+import { sessionStore } from "../session/store.js";
 
 export const HwpOpenInput = z
   .object({
@@ -26,6 +33,92 @@ export const DESCRIPTION =
   "hwp_fill_fields, hwp_insert_text, hwp_create_table, hwp_apply_action, " +
   "hwp_preview, hwp_save_as) operate on this document.";
 
+/**
+ * Detect HWP vs HWPX from the path extension. Throws an INPUT-domain
+ * RhwpError when the extension is anything else (the rhwp parser would
+ * also throw, but a clearer error here helps LLMs course-correct without
+ * paying the WASM call cost).
+ */
+function formatFromExt(path: string): "hwp" | "hwpx" {
+  const ext = extname(path).toLowerCase();
+  if (ext === ".hwp") return "hwp";
+  if (ext === ".hwpx") return "hwpx";
+  throw new RhwpError({
+    category: "parse",
+    code: "UNSUPPORTED_FORMAT",
+    message: `Cannot open ${path}: only .hwp and .hwpx are supported (got '${ext || "(no extension)"}')`,
+  });
+}
+
+export interface HwpOpenResult {
+  // MCP SDK's structuredContent requires Record<string, unknown> shape.
+  [k: string]: unknown;
+  ok: true;
+  format: "hwp" | "hwpx";
+  page_count: number;
+}
+
+/**
+ * Pure handler — independent of the MCP SDK shape so tests can call it
+ * directly with a parsed input object.
+ */
+export async function executeHwpOpen(input: { path: string }): Promise<HwpOpenResult> {
+  const sourceFormat = formatFromExt(input.path);
+
+  // Defensive existence check so the error category is "parse" with a
+  // clear message instead of a raw ENOENT bubbling out of readFileSync.
+  try {
+    statSync(input.path);
+  } catch (e) {
+    throw new RhwpError({
+      category: "parse",
+      code: "READ_FAILED",
+      message: `Cannot stat ${input.path}: ${e instanceof Error ? e.message : String(e)}`,
+      cause: e,
+    });
+  }
+
+  const bytes = (() => {
+    try {
+      return readFileSync(input.path);
+    } catch (e) {
+      throw new RhwpError({
+        category: "parse",
+        code: "READ_FAILED",
+        message: `Failed to read ${input.path}: ${e instanceof Error ? e.message : String(e)}`,
+        cause: e,
+      });
+    }
+  })();
+
+  const rhwp = getRhwp() as RhwpModuleLike;
+  const doc = await wrapPanic("parse", () => new rhwp.HwpDocument(new Uint8Array(bytes)));
+
+  // Cross-check the format rhwp inferred from the bytes against the
+  // extension. We trust rhwp's view for the final answer but record an
+  // stderr breadcrumb on disagreement so the user can investigate later.
+  const detected = await wrapPanic("parse", () => doc.getSourceFormat());
+  const detectedFormat = detected === "hwp" || detected === "hwpx" ? detected : sourceFormat;
+  if (detectedFormat !== sourceFormat) {
+    process.stderr.write(
+      `hwp_open: extension says ${sourceFormat} but rhwp says ${detected} — using ${detectedFormat}\n`,
+    );
+  }
+
+  const pageCount = await wrapPanic("parse", () => doc.pageCount());
+
+  sessionStore.set(doc, {
+    sourcePath: input.path,
+    sourceFormat: detectedFormat,
+  });
+
+  return {
+    ok: true,
+    format: detectedFormat,
+    page_count: pageCount,
+  };
+}
+
 export function registerHwpOpen(server: McpServer): void {
   server.registerTool(
     "hwp_open",
@@ -36,11 +129,11 @@ export function registerHwpOpen(server: McpServer): void {
       outputSchema: HwpOpenOutput.shape,
     },
     async ({ path }) => {
-      throw new RhwpError({
-        category: "parse",
-        code: "NOT_IMPLEMENTED",
-        message: `hwp_open(${path}) not implemented yet — Sprint 1.`,
-      });
+      const result = await executeHwpOpen({ path });
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }],
+        structuredContent: result,
+      };
     },
   );
 }
