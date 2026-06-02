@@ -1,0 +1,50 @@
+name: binary-identity-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Re-run weekly so a silently failing rhwp release doesn't go
+    # unnoticed between feature PRs.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  gate-binary-identity:
+    name: Sprint 1.5 — binary identity gate (synthetic corpus only)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Regenerate synthetic corpus
+        run: npm run corpus:generate
+
+      - name: Run binary-identity gate
+        run: npm run gate:binary-identity
+
+      - name: Upload corpus report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-report-${{ github.run_id }}
+          path: corpus-report.json
+          if-no-files-found: warn
+          retention-days: 30

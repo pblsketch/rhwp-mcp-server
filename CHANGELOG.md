@@ -8,6 +8,19 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Added — Sprint 1.5 (Binary-Identity Save Gate)
+- `scripts/corpus-runner.ts` — Pass B runner. Walks `corpus/synthetic/`, `corpus/forms/`, `corpus/private/`, opens each `.hwp` via `new HwpDocument(bytes)`, calls `exportHwpVerify()` to inspect `{bytesLen, pageCountBefore, pageCountAfter, recovered}`, round-trips through `exportHwp()` + re-open + second `exportHwpVerify`, and emits a per-case PASS/FAIL record. Computes pass rate + Wilson 95% CI + bonus `strictByteEqual` and `whitelistMatched` signals. Exits 0 on pass / 2 on fail / 0 on empty corpus (with NOTE).
+- `scripts/generate-synthetic-corpus.ts` — deterministic generator for 5 synthetic cases (`blank`, `text-only`, `table-only`, `paragraph-style`, `mixed`) so the gate runs from a fresh clone without any external corpus dependency. Wired as `npm run corpus:generate`.
+- `corpus/identity-whitelist.json` (v1) — documented metadata diffs allowed during byte-compare: DocInfo timestamp, generator string, document UUID, section metadata, OLE2 compression framing. v0.1.5 policy treats successful re-import as a whitelist match; per-stream byte diff is deferred to v0.2 (tracked in ADR-0002).
+- `corpus/README.md`, `corpus/private/.gitignore`, `corpus/private/README.md` — corpus layout (synthetic + forms + private), with `corpus/private/` excluded from version control so users can drop confidential `.hwp` files locally and the runner picks them up automatically.
+- `docs/decisions/0002-binary-save-fallback.md` — ADR-0002 (Accepted). Defines the Pass B criteria, records the v1 baseline measurement (5/5 pass on synthetic, 100.0%, Wilson 95% [56.6%, 100.0%]), and locks the fallback policy (HWPX-only Option α or pure Option D) if a future measurement falls below the 90% threshold.
+- `docs/measurements/binary-identity-results.md` (v1) — measurement report with per-case verify shapes and reproduction commands.
+- `scenarios/05-hwp-identity-roundtrip.md` — 호환성 persona narrative showing the gate output and per-case evidence customers can hand to QA.
+- `tests/integration/binary-identity.test.ts` — in-process vitest probe that exercises the round-trip on a synthesized blank document plus a text+table+style edit, asserting `recovered=true` + page-count parity + verify-report shape. Catches regressions on rhwp version bumps inside `npm test`.
+- `.github/workflows/binary-identity.yml` — CI workflow running `npm run corpus:generate` → `npm run gate:binary-identity` on push, PR, and weekly cron; uploads `corpus-report.json` as a build artifact.
+- New npm scripts: `npm run corpus:generate` (regenerate synthetic corpus) and `npm run gate:binary-identity` (run Pass B).
+- **Decision Gate 1.5 verdict: PASS.** rhwp 0.7.13 produced a deterministic byte stream on all 5 synthetic cases (`strictByteEqual=true`, no DocInfo timestamp drift observed). Sprint 2 already shipped; this ADR formalizes the baseline.
+
 ### Added — Sprint 2 (Authoring vertical)
 - Real `@rhwp/core` `HwpDocument` calls behind the five Authoring tools — `hwp_insert_text`, `hwp_create_table`, `hwp_set_paragraph_style`, `hwp_apply_action`, `hwp_list_actions` no longer throw `NOT_IMPLEMENTED`.
 - `hwp_insert_text` maps to `HwpDocument.insertText(0, 0, 0, text)` (document start). The `style` parameter is accepted for forward compatibility but ignored in v0.1 — use `hwp_set_paragraph_style` or `hwp_apply_action` with `applyCharFormat` for explicit style application.

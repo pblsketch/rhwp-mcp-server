@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "version": "v1",
+  "appliesTo": "@rhwp/core@^0.7.13",
+  "rhwpDocumentedDiffs": [
+    {
+      "name": "DocInfo/saveTimestamp",
+      "reason": "rhwp stamps the document with the current wall-clock time on every save. Bit-identity is impossible across two sequential saves unless we mock the clock, which v0.1.5 does not attempt."
+    },
+    {
+      "name": "DocInfo/generatorString",
+      "reason": "rhwp identifies itself in the HWP file header (e.g. 'rhwp/0.7.13'). The string changes on every release."
+    },
+    {
+      "name": "DocInfo/randomDocumentId",
+      "reason": "Some HWP storage streams include per-document UUIDs regenerated on save for caching purposes. Documented in rhwp issue tracker."
+    },
+    {
+      "name": "BodyText/sectionMetadata",
+      "reason": "Per-section metadata blocks may include compression hints that rhwp recomputes. The body content itself stays equivalent."
+    },
+    {
+      "name": "Storage/compressionFraming",
+      "reason": "The OLE2 container can re-frame compressed streams differently on round-trip without changing the logical content."
+    }
+  ],
+  "policy": {
+    "v0.1.5": "Pass B treats any successful exportHwp → re-open → exportHwpVerify(recovered=true, pageCount unchanged) as a whitelist match. Per-field binary diffing is deferred to v0.2 (see docs/decisions/0002-binary-save-fallback.md step 4).",
+    "v0.2": "Introduce binary diff that walks the OLE2 storage tree, excludes the streams listed above, and reports the remainder. Targets <5% residual diff per case before claiming bit-level identity."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-06-02T17:18:13.909Z",
+  "rhwpCoreVersion": "0.7.13",
+  "cases": [
+    {
+      "id": "blank",
+      "filename": "blank.hwp",
+      "description": "Bundled blank template, no edits.",
+      "bytesLen": 12800
+    },
+    {
+      "id": "text-only",
+      "filename": "text-only.hwp",
+      "description": "Single Korean paragraph inserted at document start.",
+      "bytesLen": 12800
+    },
+    {
+      "id": "table-only",
+      "filename": "table-only.hwp",
+      "description": "2×2 table at document start, no text.",
+      "bytesLen": 13312
+    },
+    {
+      "id": "paragraph-style",
+      "filename": "paragraph-style.hwp",
+      "description": "Center alignment applied to the first paragraph.",
+      "bytesLen": 12800
+    },
+    {
+      "id": "mixed",
+      "filename": "mixed.hwp",
+      "description": "Text + 2×2 table + center alignment in one document.",
+      "bytesLen": 13312
+    }
+  ]
+}

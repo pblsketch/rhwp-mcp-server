@@ -1,0 +1,6 @@
+# Everything in this directory is private and must never be committed.
+# Users drop their own .hwp / .hwpx files here; the corpus runner picks
+# them up automatically (see ../README.md).
+*
+!.gitignore
+!README.md

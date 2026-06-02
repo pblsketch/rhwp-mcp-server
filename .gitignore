@@ -53,3 +53,8 @@ warm.log
 # rebuild churn). Comment these out to commit the latest probe baseline.
 # docs/measurements/tool-description-tokens.txt
 # docs/measurements/rhwp-field-api.md
+
+# Sprint 1.5 corpus-runner output — transient per-run artifact. The
+# committed baseline lives in docs/measurements/binary-identity-results.md
+# (regenerated manually when a new measurement is taken).
+corpus-report.json

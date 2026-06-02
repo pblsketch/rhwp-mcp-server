@@ -28,6 +28,8 @@
     "measure:tokens": "tsx scripts/measure-tool-tokens.ts",
     "probe:fields": "tsx scripts/probe-rhwp-fields.ts",
     "generate:catalog-manifest": "tsx scripts/generate-catalog-manifest.ts",
+    "corpus:generate": "tsx scripts/generate-synthetic-corpus.ts",
+    "gate:binary-identity": "tsx scripts/corpus-runner.ts",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\""
   },
   "keywords": [
