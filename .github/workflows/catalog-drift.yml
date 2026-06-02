@@ -1,0 +1,39 @@
+name: Catalog Drift
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  catalog-drift:
+    name: rhwp action catalog version guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check catalog manifest pinning
+        # Sprint 2 introduces src/rhwp/catalog-manifest.json with a pinned
+        # @rhwp/core version. This step asserts the manifest's pinned
+        # version equals package.json's @rhwp/core dependency, blocking
+        # uncoordinated version bumps. The check script will be added in
+        # Sprint 2; this job exists as a placeholder so the workflow file
+        # ships with Sprint 0.
+        run: |
+          if [ -f scripts/check-catalog-drift.ts ]; then
+            npx tsx scripts/check-catalog-drift.ts
+          else
+            echo "Sprint 2 placeholder — catalog manifest not yet present."
+            echo "This job becomes a hard gate once src/rhwp/catalog-manifest.json lands."
+          fi

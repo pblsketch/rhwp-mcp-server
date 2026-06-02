@@ -1,0 +1,76 @@
+name: Upstream Drift Watch
+
+on:
+  schedule:
+    # Mondays 09:00 UTC — early-week visibility, before merge surges
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  upstream-drift:
+    name: Detect new @rhwp/core releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: Compare pinned vs latest @rhwp/core
+        id: drift
+        shell: bash
+        run: |
+          set -e
+          PINNED=$(node -p "require('./package.json').dependencies['@rhwp/core']" | sed 's/[\^~]//')
+          LATEST=$(npm view @rhwp/core version)
+          echo "pinned=$PINNED"  | tee -a "$GITHUB_OUTPUT"
+          echo "latest=$LATEST"  | tee -a "$GITHUB_OUTPUT"
+          if [ "$PINNED" = "$LATEST" ]; then
+            echo "drift=false" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "drift=true"  | tee -a "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open info issue on drift
+        if: steps.drift.outputs.drift == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pinned = "${{ steps.drift.outputs.pinned }}";
+            const latest = "${{ steps.drift.outputs.latest }}";
+            const title = `[upstream-drift] @rhwp/core ${pinned} → ${latest}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "upstream-drift",
+            });
+            const exists = issues.data.find(i => i.title === title);
+            if (exists) {
+              core.info(`Issue already open: #${exists.number}`);
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ["upstream-drift", "info"],
+              body: [
+                `Pinned: \`@rhwp/core@${pinned}\``,
+                `Latest on npm: \`${latest}\``,
+                ``,
+                `**Action:** review the upstream changelog (https://github.com/edwardkim/rhwp/releases),`,
+                `update \`package.json\` and \`src/rhwp/catalog-manifest.json\` together,`,
+                `regenerate \`schemas/snapshot.json\` via \`npm run schema:snapshot\`,`,
+                `then open a PR that bumps both pins.`,
+                ``,
+                `Auto-opened by \`.github/workflows/upstream-drift.yml\`.`,
+              ].join("\n"),
+            });

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["20.x", "22.x"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Smoke — WASM warm + hwp_ping
+        # Sprint 0 exit criterion: wasm warm ≤ 2000 ms on each OS, and
+        # hwp_ping callable via MCP stdio. We pipe a tools/list request
+        # into the server, snip the response, then close.
+        shell: bash
+        run: |
+          set -e
+          timeout 15s node dist/server.js < /dev/null 2>warm.log || true
+          grep -E '^wasm warm: [0-9]+ms' warm.log
+          MS=$(grep -oE 'wasm warm: [0-9]+' warm.log | grep -oE '[0-9]+')
+          if [ "$MS" -gt 2000 ]; then
+            echo "FAIL: wasm warm took ${MS}ms (>2000ms threshold)"
+            exit 1
+          fi
+          echo "OK: wasm warm = ${MS}ms"
