@@ -16,7 +16,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { warmRhwp } from "../../src/rhwp/loader.js";
-import type { RhwpModuleLike } from "../../src/rhwp/types.js";
+import { sessionStore } from "../../src/session/store.js";
+import type { HwpDocumentLike, RhwpModuleLike } from "../../src/rhwp/types.js";
 
 let cachedPath: string | null = null;
 
@@ -46,4 +47,32 @@ export async function makeBlankHwpxFixture(): Promise<string> {
   writeFileSync(path, bytes);
   cachedPath = path;
   return path;
+}
+
+/**
+ * Sprint 2 Authoring tests need a document with at least one section so
+ * that coordinate-based actions (insertText, createTable, applyParaFormat,
+ * …) can target (section_idx=0, para_idx=0, char_offset=0).
+ *
+ * Bootstrap recipe:
+ *   1. `HwpDocument.createEmpty()` — returns a sectionless skeleton.
+ *   2. `doc.createBlankDocument()` — loads the bundled saved/blank2010.hwp
+ *      template, giving us a doc with a real section 0 and a single empty
+ *      paragraph at (0, 0).
+ *
+ * The helper bypasses the file round-trip and injects the resulting doc
+ * directly into `sessionStore`. The static `createEmpty()` alone is NOT
+ * enough for Authoring — it reports `구역 인덱스 0 범위 초과 (총 0개)`
+ * on any coordinate-based action.
+ */
+export async function openBlankAuthoringDocument(): Promise<HwpDocumentLike> {
+  const mod = (await warmRhwp()) as RhwpModuleLike;
+  const doc = mod.HwpDocument.createEmpty();
+  (doc as unknown as { createBlankDocument(): string }).createBlankDocument();
+  sessionStore.clear();
+  sessionStore.set(doc, {
+    sourcePath: "<in-memory blank>",
+    sourceFormat: "hwpx",
+  });
+  return doc;
 }

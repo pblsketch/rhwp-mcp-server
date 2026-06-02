@@ -8,6 +8,20 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Added — Sprint 2 (Authoring vertical)
+- Real `@rhwp/core` `HwpDocument` calls behind the five Authoring tools — `hwp_insert_text`, `hwp_create_table`, `hwp_set_paragraph_style`, `hwp_apply_action`, `hwp_list_actions` no longer throw `NOT_IMPLEMENTED`.
+- `hwp_insert_text` maps to `HwpDocument.insertText(0, 0, 0, text)` (document start). The `style` parameter is accepted for forward compatibility but ignored in v0.1 — use `hwp_set_paragraph_style` or `hwp_apply_action` with `applyCharFormat` for explicit style application.
+- `hwp_create_table` maps to `HwpDocument.createTable(0, 0, 0, rows, cols)` and, when `data` is supplied, fills each non-empty cell via `insertTextInCell` using the `paraIdx`/`controlIdx` returned by `createTable`. Mismatched data shape raises `BAD_DATA_SHAPE` before any WASM call.
+- `hwp_set_paragraph_style` builds a `props_json` blob from the input style and calls `HwpDocument.applyParaFormat(0, 0, propsJson)`. Failed `ok:false` returns surface as a typed `action/APPLY_FORMAT_FAILED` error.
+- `hwp_apply_action` is the generic dispatcher — it looks up the action in `ACTIONS`, validates `params` via zod (`BAD_PARAMS` on mismatch), throws `UNKNOWN_ACTION` for missing names, and forwards to the catalog `invoke` function inside `wrapPanic('action')`.
+- `hwp_list_actions` returns the catalog (name, category, description, params_schema as JSON Schema). Default category `all`; supported filters: `text`, `table`, `paragraph`, `header_footer`, `page`, `field`, `image`, `math`, `style` (legacy alias for `paragraph`), `chart` (reserved, empty in v0.1).
+- Coordinate-defaulting choice: the four mutating Authoring tools hard-code `(section_idx=0, para_idx=0, char_offset=0)` because the locked zod schemas do not expose coordinates. `hwp_apply_action` is the escape hatch for explicit coordinates (it accepts `insertText`, `createTable`, `applyParaFormat`, etc. with full coordinate params per the action's schema).
+- New module `src/rhwp/actions.ts` — typed catalog of 35 curated rhwp actions across text/table/paragraph/header_footer/page/field/image/math/other categories. Exposes `ACTIONS`, `getActionByName`, `listActions`, and a `validateCatalog()` self-check.
+- New module `src/rhwp/catalog-manifest.json` — serialized snapshot of the catalog pinned to `@rhwp/core 0.7.13` (matches the `package.json` pin). Contains `{rhwpCoreVersion, generatedAt, actionCount, actions: [{name, category, description, params_schema}]}` with JSON Schema bodies generated via `zod-to-json-schema`.
+- New script `scripts/generate-catalog-manifest.ts` — regenerator wired as `npm run generate:catalog-manifest`. Used by the `catalog-drift.yml` CI workflow to detect undocumented catalog changes.
+- `HwpDocumentLike` widened with the Sprint 2 Authoring methods (`insertText`, `insertTextInCell`, `createTable`, `applyParaFormat`, `searchAllText`) plus a `[method: string]: unknown` catch-all so `hwp_apply_action` can dispatch any rhwp method by name without further re-declarations.
+- vitest smoke tests for each of the five tools (`tests/smoke/{insert_text,create_table,set_paragraph_style,apply_action,list_actions}.test.ts`) plus an `openBlankAuthoringDocument()` helper in `tests/setup/fixture.ts` that bootstraps a section via `HwpDocument.createEmpty()` + `createBlankDocument()` (the static `createEmpty` alone has 0 sections and is unusable for Authoring).
+
 ### Added — Sprint 1 (Form Filling vertical)
 - Real `@rhwp/core` `HwpDocument` calls behind the four Form Filling tools — `hwp_open`, `hwp_save_as`, `hwp_list_fields`, `hwp_fill_fields` no longer throw `NOT_IMPLEMENTED`.
 - `hwp_open` loads a `.hwp`/`.hwpx` file via `new HwpDocument(bytes)`, cross-checks the format against the file extension, and parks the doc in `SessionStore`. Returns `{ ok, format, page_count }`.

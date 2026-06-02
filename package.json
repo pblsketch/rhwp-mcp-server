@@ -27,6 +27,7 @@
     "schema:snapshot": "tsx scripts/schema-snapshot.ts",
     "measure:tokens": "tsx scripts/measure-tool-tokens.ts",
     "probe:fields": "tsx scripts/probe-rhwp-fields.ts",
+    "generate:catalog-manifest": "tsx scripts/generate-catalog-manifest.ts",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\""
   },
   "keywords": [

@@ -1,0 +1,1102 @@
+{
+  "rhwpCoreVersion": "0.7.13",
+  "generatedAt": "2026-06-02T15:47:46.729Z",
+  "actionCount": 35,
+  "actions": [
+    {
+      "name": "insertText",
+      "category": "text",
+      "description": "Insert UTF-8 text at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertParagraph",
+      "category": "text",
+      "description": "Insert an empty paragraph at (section_idx, para_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "deleteText",
+      "category": "text",
+      "description": "Delete `count` characters starting at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "count": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "count"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "replaceText",
+      "category": "text",
+      "description": "Replace `length` characters starting at the coordinate with new_text. Use replaceOne / replaceAll for query-driven replace.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "new_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "length",
+          "new_text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "replaceAll",
+      "category": "text",
+      "description": "Replace every match of `query` with `new_text` across the body.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_text": {
+            "type": "string"
+          },
+          "case_sensitive": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "query",
+          "new_text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "searchAllText",
+      "category": "text",
+      "description": "Search the document for all occurrences of `query`. Returns JSON match list.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_sensitive": {
+            "type": "boolean",
+            "default": false
+          },
+          "include_cells": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "splitParagraph",
+      "category": "text",
+      "description": "Split the paragraph at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "createTable",
+      "category": "table",
+      "description": "Create a row_count × col_count table at the coordinate.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "row_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "col_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "row_count",
+          "col_count"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertTextInCell",
+      "category": "table",
+      "description": "Insert text into the specified cell (control_idx + cell_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cell_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cell_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx",
+          "cell_idx",
+          "cell_para_idx",
+          "char_offset",
+          "text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "mergeTableCells",
+      "category": "table",
+      "description": "Merge the rectangular cell range (start_row,start_col) → (end_row,end_col).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_col": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_col": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx",
+          "start_row",
+          "start_col",
+          "end_row",
+          "end_col"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertTableRow",
+      "category": "table",
+      "description": "Insert a row at row_idx. `below=true` inserts after, false inserts before.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "row_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "below": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx",
+          "row_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertTableColumn",
+      "category": "table",
+      "description": "Insert a column at col_idx. `right=true` inserts to the right, false to the left.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "col_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "right": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx",
+          "col_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "deleteTableRow",
+      "category": "table",
+      "description": "Delete the row at row_idx.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "row_idx": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx",
+          "row_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "applyParaFormat",
+      "category": "paragraph",
+      "description": "Apply a paragraph-format JSON blob (alignment, indent, line-spacing) to (section_idx, para_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "props_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "props_json"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "applyStyle",
+      "category": "paragraph",
+      "description": "Apply a named style (by style_id) to the paragraph at (section_idx, para_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "style_id": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "style_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "applyCharFormat",
+      "category": "paragraph",
+      "description": "Apply char-format JSON (font, size, bold, …) to a character range.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "props_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "start_offset",
+          "end_offset",
+          "props_json"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "createHeaderFooter",
+      "category": "header_footer",
+      "description": "Create a header (is_header=true) or footer at section_idx. apply_to: 0=both, 1=even, 2=odd.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_header": {
+            "type": "boolean"
+          },
+          "apply_to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "section_idx",
+          "is_header",
+          "apply_to"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "deleteHeaderFooter",
+      "category": "header_footer",
+      "description": "Delete the header (is_header=true) or footer for the apply_to scope.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_header": {
+            "type": "boolean"
+          },
+          "apply_to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "section_idx",
+          "is_header",
+          "apply_to"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertTextInHeaderFooter",
+      "category": "header_footer",
+      "description": "Insert text inside a header/footer at (hf_para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_header": {
+            "type": "boolean"
+          },
+          "apply_to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "hf_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "is_header",
+          "apply_to",
+          "hf_para_idx",
+          "char_offset",
+          "text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "applyHfTemplate",
+      "category": "header_footer",
+      "description": "Apply a pre-defined header/footer template (template_id) to the apply_to scope.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_header": {
+            "type": "boolean"
+          },
+          "apply_to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "template_id": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "is_header",
+          "apply_to",
+          "template_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertPageBreak",
+      "category": "page",
+      "description": "Insert a hard page break at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertColumnBreak",
+      "category": "page",
+      "description": "Insert a column break at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "setPageDef",
+      "category": "page",
+      "description": "Replace the section page-def (paper size, margins, orientation) with a JSON blob. Use getPageDef beforehand to discover the current shape.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_idx",
+          "json"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "getFieldList",
+      "category": "field",
+      "description": "List all form fields in the document (same data as hwp_list_fields).",
+      "params_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "getFieldValueByName",
+      "category": "field",
+      "description": "Read a single field's current value by name.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "setFieldValueByName",
+      "category": "field",
+      "description": "Set a single field by name (same primitive used by hwp_fill_fields).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "removeFieldAt",
+      "category": "field",
+      "description": "Remove the field at (section_idx, para_idx, char_offset).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertFieldInHf",
+      "category": "field",
+      "description": "Insert a field of `field_type` inside a header/footer.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_header": {
+            "type": "boolean"
+          },
+          "apply_to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "hf_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "field_type": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "is_header",
+          "apply_to",
+          "hf_para_idx",
+          "char_offset",
+          "field_type"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertPicture",
+      "category": "image",
+      "description": "Insert a picture from raw bytes (image_data is base64 — decoded here). width/height are in HWPUNIT, natural_*_px are pixel dimensions.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "image_data_base64": {
+            "type": "string",
+            "minLength": 1
+          },
+          "width": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "height": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "natural_width_px": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "natural_height_px": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "extension": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "default": ""
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "image_data_base64",
+          "width",
+          "height",
+          "natural_width_px",
+          "natural_height_px",
+          "extension"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "deletePictureControl",
+      "category": "image",
+      "description": "Delete a picture control identified by (section_idx, parent_para_idx, control_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "insertEquation",
+      "category": "math",
+      "description": "Insert a math equation at (section_idx, para_idx, char_offset). `script` is HwpEqn syntax. color is packed BGR (0=black).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "script": {
+            "type": "string",
+            "minLength": 1
+          },
+          "font_size": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "color": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "para_idx",
+          "char_offset",
+          "script",
+          "font_size"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "deleteEquationControl",
+      "category": "math",
+      "description": "Delete an equation control identified by (section_idx, parent_para_idx, control_idx).",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "section_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_para_idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "control_idx": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "section_idx",
+          "parent_para_idx",
+          "control_idx"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "getDocumentInfo",
+      "category": "other",
+      "description": "Return high-level document metadata (sections, page count, format) as JSON.",
+      "params_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "getBookmarks",
+      "category": "other",
+      "description": "Return all bookmarks in the document as a JSON list.",
+      "params_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "exportHwpVerify",
+      "category": "other",
+      "description": "Round-trip the document through HWP 5.0 export and return a structural-equivalence verification report. Used by Sprint 1.5 binary-identity gate.",
+      "params_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  ]
+}

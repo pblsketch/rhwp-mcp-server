@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { RhwpError } from "../rhwp/errors.js";
+
+import { RhwpError, wrapPanic } from "../rhwp/errors.js";
+import { sessionStore } from "../session/store.js";
+import type { RhwpActionResult } from "../rhwp/types.js";
 
 const StyleSchema = z
   .object({
@@ -19,8 +22,17 @@ const StyleSchema = z
 
 export const HwpInsertTextInput = z
   .object({
-    text: z.string().describe("UTF-8 text to insert at the current cursor."),
-    style: StyleSchema.optional(),
+    text: z
+      .string()
+      .describe(
+        "UTF-8 text to insert at the document START (section_idx=0, para_idx=0, " +
+          "char_offset=0). For coordinate-aware insertion use hwp_apply_action " +
+          "with name='insertText'.",
+      ),
+    style: StyleSchema.optional().describe(
+      "Style fields are accepted but IGNORED in v0.1 — use hwp_set_paragraph_style " +
+        "or hwp_apply_action with applyCharFormat for explicit style application.",
+    ),
   })
   .strict();
 
@@ -32,25 +44,64 @@ export const HwpInsertTextOutput = z
   .strict();
 
 export const DESCRIPTION =
-  "Insert text at the current cursor position. Composes the underlying " +
-  "rhwp InsertText + CharShape actions in a single call. Style fields are " +
-  "all optional — omit any to inherit from the current paragraph style.";
+  "Insert text at the document start (section_idx=0, para_idx=0, char_offset=0). " +
+  "Maps to rhwp HwpDocument.insertText(0, 0, 0, text). The `style` parameter " +
+  "is accepted for forward compatibility but NOT applied in v0.1 — use " +
+  "hwp_set_paragraph_style or hwp_apply_action with applyCharFormat for " +
+  "explicit style application. For coordinate-aware text insertion (e.g. into " +
+  "an existing paragraph mid-document) use hwp_apply_action with name='insertText'.";
+
+export interface HwpInsertTextResult {
+  [k: string]: unknown;
+  ok: true;
+  chars_inserted: number;
+}
+
+export async function executeHwpInsertText(input: {
+  text: string;
+  style?: z.infer<typeof StyleSchema>;
+}): Promise<HwpInsertTextResult> {
+  const doc = sessionStore.get();
+  const raw = await wrapPanic("action", () => doc.insertText(0, 0, 0, input.text));
+
+  // rhwp's insertText returns a JSON string. Parse defensively; on a non-JSON
+  // return we still surface success (some early rhwp versions returned the
+  // empty string on success).
+  let parsed: RhwpActionResult | null = null;
+  if (raw && raw.length > 0) {
+    try {
+      parsed = JSON.parse(raw) as RhwpActionResult;
+    } catch {
+      parsed = null;
+    }
+  }
+
+  if (parsed !== null && parsed.ok === false) {
+    throw new RhwpError({
+      category: "action",
+      code: "INSERT_FAILED",
+      message: `Failed to insert text${parsed.message ? `: ${parsed.message}` : ""}`,
+    });
+  }
+
+  return { ok: true, chars_inserted: input.text.length };
+}
 
 export function registerHwpInsertText(server: McpServer): void {
   server.registerTool(
     "hwp_insert_text",
     {
-      title: "Insert text with optional style",
+      title: "Insert text at document start",
       description: DESCRIPTION,
       inputSchema: HwpInsertTextInput.shape,
       outputSchema: HwpInsertTextOutput.shape,
     },
-    async ({ text }) => {
-      throw new RhwpError({
-        category: "action",
-        code: "NOT_IMPLEMENTED",
-        message: `hwp_insert_text(${text.length} chars) not implemented yet — Sprint 2.`,
-      });
+    async ({ text, style }) => {
+      const result = await executeHwpInsertText({ text, style });
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }],
+        structuredContent: result,
+      };
     },
   );
 }
