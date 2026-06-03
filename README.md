@@ -1,31 +1,75 @@
 # rhwp-mcp-server
 
-> MCP server for Korean HWP / HWPX documents — read, fill form fields, fill cells, author new docs, base64 round-trip — powered by [@rhwp/core](https://github.com/edwardkim/rhwp) (Rust + WebAssembly).
+**AI에게 한글(HWP/HWPX) 문서 작업을 맡기세요.** 이력서·공문·가정통신문 같은 한컴
+양식을 자동으로 채우고, 빈 문서에서 새 문서를 작성하고, `.hwp` ↔ `.hwpx` 변환까지 —
+모두 대화로. 한컴오피스 설치 없이 작동합니다.
 
-**Status:** `0.1.0-beta.1` — private-beta release prep. 15 tools wired to real
-`@rhwp/core` calls, 66 vitest cases passing, binary-identity gate 5/5 PASS on
-the synthetic baseline. See [`CHANGELOG.md`](./CHANGELOG.md) for the full
-Sprint 1 → 3 trail.
+[![npm](https://img.shields.io/npm/v/rhwp-mcp-server/beta?color=cb3837&logo=npm)](https://www.npmjs.com/package/rhwp-mcp-server)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![node](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org)
+[![MCP](https://img.shields.io/badge/MCP-stdio-7c3aed)](https://modelcontextprotocol.io)
+
+> [MCP](https://modelcontextprotocol.io) 서버입니다. Claude Desktop · Claude Code ·
+> Cursor · Codex CLI · Antigravity CLI 등 MCP를 지원하는 AI 클라이언트에 연결하면,
+> AI가 한글 문서를 직접 열고·채우고·만들고·저장합니다. [@rhwp/core](https://github.com/edwardkim/rhwp)
+> (Rust + WebAssembly) 엔진 기반.
 
 ---
 
-## What this is
+## 이런 적 없으신가요?
 
-An [MCP](https://modelcontextprotocol.io) server that lets an LLM (Claude
-Desktop, Claude Code, Cursor, Codex CLI, Antigravity CLI, Claude Web/Mobile
-via base64) work with Korean `.hwp` and `.hwpx` files natively. Any
-MCP-compliant client that speaks stdio can use it. The design balances
-**three personas** equally — none is the headline:
+- 학교에서 받은 **35칸짜리 이력서 양식**을 매번 손으로 채운다.
+- **가정통신문**을 빈 문서에서 제목 가운데 정렬, 굵게, 글자 크기까지 일일이 맞춘다.
+- 한컴오피스가 없는 컴퓨터에서 받은 `.hwp` 파일을 **열지도 못한다**.
 
-1. **공공기관·HR·총무 자동화 (Form Filler)** — bulk-fill 한컴 양식 (이력서 / 공문 / 계약서 / 가정통신문) from structured data. **누름틀** and **table-cell** layouts both supported.
-2. **지식 노동자 / 개발자 (Document Editor)** — author new HWP / HWPX documents top-down: title, body, tables, styled char shape, paragraph layout. No 한컴오피스 license required.
-3. **호환성 민감 사용자 (Hancom Bridge)** — read/write HWP ↔ HWPX safely on machines without 한컴오피스 installed. Includes a binary-identity save gate (ADR-0002) so round-trips are auditable.
+이런 작업을 이제 AI에게 말로 시킬 수 있습니다:
 
-## Quick start
+| 이렇게 말하면 | AI가 이렇게 합니다 |
+| --- | --- |
+| *"이 이력서 양식에 제 정보로 채워줘"* | 빈칸을 찾아 → 이름·연락처·학력을 자동 입력 → 저장 |
+| *"가정통신문 초안 만들어줘. 제목은 굵게 크게"* | 빈 문서에서 제목·본문·표를 작성하고 글자 스타일까지 적용 |
+| *"이 .hwp를 .hwpx로 바꿔줘"* | 한컴오피스 없이 변환 (원본 손상 여부까지 검증) |
 
-Setup is **two steps**: install the package **and** register it with your MCP
-client. `npm install` alone does NOT make Claude Code / Claude Desktop /
-Cursor see the server — registration is a separate step. Pick your client:
+> 한국어 비개발자용 빠른 시작 가이드는 준비 중입니다. 현재는 아래 영어 setup
+> 문서를 참고하세요 — 명령을 그대로 복사해서 쓰면 됩니다.
+
+---
+
+## 무엇을 할 수 있나 (세 가지 사용자 유형)
+
+이 서버는 세 가지 사용 방식을 **동등하게** 지원합니다 — 하나가 메인이 아닙니다:
+
+1. **양식 자동 채우기 (공공기관·HR·총무)** — 한컴 양식(이력서 / 공문 / 계약서 / 가정통신문)을 구조화된 데이터로 일괄 채우기. **누름틀(form field)** 양식과 **표 칸(table cell)** 양식 둘 다 지원.
+2. **새 문서 작성 (지식 노동자 / 개발자)** — 빈 문서에서 제목·본문·표·글자 서식·문단 레이아웃까지 위에서 아래로 작성. 한컴오피스 라이선스 불필요.
+3. **호환성 브리지 (한컴오피스 없는 환경)** — HWP ↔ HWPX 안전하게 읽기/쓰기. 저장 시 원본 보존 여부를 검증하는 binary-identity 게이트 내장 (ADR-0002).
+
+---
+
+## 현재 상태
+
+`0.1.0-beta.1` — **비공개 베타**입니다. 15개 도구가 실제 `@rhwp/core` 호출에
+연결되어 있고, 66개 테스트 통과, binary-identity 게이트는 합성 코퍼스에서 5/5
+PASS입니다. 실전 검증된 use case(실제 학교 이력서 35칸 채우기, 가정통신문 작성)도
+있습니다. 전체 개발 이력은 [`CHANGELOG.md`](./CHANGELOG.md) 참고.
+
+베타이므로 중요한 문서는 **백업 후** 사용하시고, 문제를 발견하면
+[이슈](https://github.com/pblsketch/rhwp-mcp-server/issues)로 알려주세요.
+
+## 설치하기 (Quick start)
+
+먼저 컴퓨터에 [Node.js 20 이상](https://nodejs.org)이 설치되어 있어야 합니다
+(`node --version`으로 확인).
+
+설치는 **두 단계**입니다: ① 패키지를 설치하고 ② MCP 클라이언트에 등록합니다.
+`npm install`만 해서는 AI 클라이언트가 서버를 인식하지 못합니다 — 등록은 별도
+단계입니다. 본인이 쓰는 클라이언트를 골라 따라 하세요:
+
+- **Claude Desktop** (앱 — 비개발자에게 가장 쉬움) → [아래](#claude-desktop)
+- **Claude Code / Codex CLI / Antigravity CLI** (터미널 — 명령 한 줄) → [아래](#claude-code-one-line)
+- **Cursor** (에디터) → [아래](#cursor)
+
+> 처음이고 잘 모르겠다면 **Claude Desktop**으로 시작하는 걸 권합니다. 설정 파일에
+> 짧은 JSON만 붙여넣으면 됩니다.
 
 ### Claude Code (one line)
 
@@ -86,25 +130,42 @@ JSON block, then restart Antigravity. The config is shared across the
 Antigravity CLI and IDE. Note: strict JSON only — no comments.
 
 Full per-client setup, troubleshooting, and verification:
+
 - [`docs/setup/claude-code.md`](./docs/setup/claude-code.md)
 - [`docs/setup/claude-desktop.md`](./docs/setup/claude-desktop.md)
 - [`docs/setup/cursor.md`](./docs/setup/cursor.md)
 - [`docs/setup/codex-cli.md`](./docs/setup/codex-cli.md)
 - [`docs/setup/antigravity-cli.md`](./docs/setup/antigravity-cli.md)
 
-Once configured, try:
+## 설정이 끝나면 — 이렇게 말해보세요
 
-- *"이력서 양식 `~/Documents/resume.hwp`에 이 정보로 채워줘."* → `hwp_open` → `hwp_list_fields` / `hwp_locate_blanks` → `hwp_fill_fields` / `hwp_fill_cells` → `hwp_save_as`.
-- *"가정통신문 초안 만들어줘. 빈 문서에서 시작."* → `hwp_open_blank` → `hwp_insert_text` (with `style`) → `hwp_create_table` → `hwp_save_as`.
-- *"이 base64 .hwp를 .hwpx로 변환해줘."* → `hwp_open_base64_validated` → `hwp_save_as_base64` (format: hwpx).
+연결이 되었는지 확인하려면 AI에게 먼저 이렇게 물어보세요:
 
-End-to-end walkthroughs per persona live under
-[`docs/persona-examples/`](./docs/persona-examples/):
-- [`form-automation.md`](./docs/persona-examples/form-automation.md) — 35-cell 이력서 fill on a real school form.
-- [`authoring.md`](./docs/persona-examples/authoring.md) — 가정통신문 with title style, body paragraphs, attendee table.
-- [`compat.md`](./docs/persona-examples/compat.md) — base64 wire transit + binary-identity gate.
+> *"hwp_ping 도구 호출해줘."*
+
+AI가 `pong`이라고 답하면 정상 연결된 것입니다. 그다음 실제 작업을 시켜보세요:
+
+- *"이력서 양식 `~/Documents/resume.hwp`에 이 정보로 채워줘."*
+  → 빈칸을 찾아 자동으로 채우고 저장합니다.
+- *"가정통신문 초안 만들어줘. 빈 문서에서 시작."*
+  → 제목·본문·표를 작성하고 글자 크기/굵기/색상까지 적용합니다.
+- *"이 base64 .hwp를 .hwpx로 변환해줘."*
+  → 한컴오피스 없이 변환하고 원본 손상 여부까지 검증합니다.
+
+각 사용 유형별 **단계별 실전 예시**는 여기에 있습니다:
+- [`form-automation.md`](./docs/persona-examples/form-automation.md) — 실제 학교 이력서 35칸 자동 채우기.
+- [`authoring.md`](./docs/persona-examples/authoring.md) — 가정통신문 작성 (제목 스타일 + 본문 + 표).
+- [`compat.md`](./docs/persona-examples/compat.md) — base64 전송 + 원본 보존 검증.
+
+---
+
+> **여기서부터는 개발자·고급 사용자용 레퍼런스입니다.** 그냥 쓰기만 할 거라면
+> 위의 "설정이 끝나면" 섹션까지만 보셔도 됩니다 — 아래 도구들은 AI가 알아서
+> 골라 씁니다.
 
 ## Tools — 15 + `hwp_ping`
+
+AI가 자동으로 선택해 호출하는 도구 목록입니다. 직접 외울 필요는 없습니다.
 
 ### Form filling (5)
 
