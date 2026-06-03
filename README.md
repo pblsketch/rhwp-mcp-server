@@ -22,11 +22,30 @@ equally — none is the headline:
 
 ## Quick start
 
+Setup is **two steps**: install the package **and** register it with your MCP
+client. `npm install` alone does NOT make Claude Code / Claude Desktop /
+Cursor see the server — registration is a separate step. Pick your client:
+
+### Claude Code (one line)
+
 ```bash
-npm install -g rhwp-mcp-server@beta   # or use npx in your client config
+npm install -g rhwp-mcp-server@beta
+claude mcp add rhwp -- rhwp-mcp
 ```
 
-Claude Desktop config (`claude_desktop_config.json`):
+Verify: `claude mcp list` should show `rhwp ... ✓ Connected`.
+
+Want to skip the global install and let npx fetch on each launch?
+
+```bash
+claude mcp add rhwp -- npx -y rhwp-mcp-server@beta
+```
+
+### Claude Desktop
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or
+`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS),
+adding the `rhwp` entry under `mcpServers`:
 
 ```jsonc
 {
@@ -39,9 +58,19 @@ Claude Desktop config (`claude_desktop_config.json`):
 }
 ```
 
-Other clients: see [`docs/setup/claude-desktop.md`](./docs/setup/claude-desktop.md),
-[`docs/setup/cursor.md`](./docs/setup/cursor.md), and
-[`docs/setup/claude-code.md`](./docs/setup/claude-code.md).
+Then **quit Claude Desktop fully** (Cmd+Q on macOS, right-click tray → Quit
+on Windows) and relaunch — Claude Desktop only re-reads the config on cold
+start.
+
+### Cursor
+
+Edit `%USERPROFILE%\.cursor\mcp.json` (Windows) or `~/.cursor/mcp.json`
+(macOS / Linux) with the same JSON block. Restart Cursor fully.
+
+Full per-client setup, troubleshooting, and verification:
+- [`docs/setup/claude-code.md`](./docs/setup/claude-code.md)
+- [`docs/setup/claude-desktop.md`](./docs/setup/claude-desktop.md)
+- [`docs/setup/cursor.md`](./docs/setup/cursor.md)
 
 Once configured, try:
 

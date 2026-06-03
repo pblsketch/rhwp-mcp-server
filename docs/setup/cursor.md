@@ -28,6 +28,12 @@ above is the stable canonical form; the UI panel writes to the same place.)
 
 ## 2. Register the server
 
+> **Important:** `npm install -g rhwp-mcp-server@beta` only installs the
+> package on your PATH. It does **not** make Cursor see the server — Cursor
+> reads its MCP server list from `mcp.json` only. The config edit below is
+> what completes the registration. Skipping this step is the most common
+> reason no `rhwp` tools appear in Composer.
+
 ```jsonc
 {
   "mcpServers": {

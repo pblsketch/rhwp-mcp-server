@@ -11,8 +11,46 @@ This guide wires `rhwp-mcp-server` into Anthropic's Claude Code CLI
 
 ## 1. Register the MCP server
 
-Claude Code reads `~/.claude/settings.json` (and the per-project
-`.claude/settings.json`). Add `rhwp` to the `mcpServers` block:
+> **Important:** `npm install -g rhwp-mcp-server@beta` only installs the
+> package on your PATH. It does **not** tell Claude Code to spawn the server
+> — Claude Code maintains its own MCP registry. The step below is what
+> actually wires the two together. Skipping this step is the most common
+> reason `rhwp` doesn't show up in `claude mcp list`.
+
+### Option A — `claude mcp add` (fastest, one line)
+
+If the package is globally installed (`npm install -g rhwp-mcp-server@beta`):
+
+```bash
+claude mcp add rhwp -- rhwp-mcp
+```
+
+If you'd rather skip the global install and let npx fetch on each launch:
+
+```bash
+claude mcp add rhwp -- npx -y rhwp-mcp-server@beta
+```
+
+Verify:
+
+```bash
+claude mcp list
+```
+
+You should see:
+
+```
+rhwp: rhwp-mcp - ✓ Connected
+```
+
+If `rhwp` is missing or shows `✗ Failed to connect`, jump to
+[Troubleshooting](#troubleshooting).
+
+### Option B — `~/.claude/settings.json` direct edit
+
+If you want to manage the registration in your project's `.claude/settings.json`
+(per-project access, recommended when the project has Korean form templates),
+add `rhwp` to the `mcpServers` block:
 
 ```jsonc
 {
@@ -24,10 +62,6 @@ Claude Code reads `~/.claude/settings.json` (and the per-project
   }
 }
 ```
-
-For project-only access (recommended if the project has Korean form
-templates), use the project-scoped settings file
-(`.claude/settings.json` at the project root).
 
 For a pinned version or a global install, use the same patterns as
 [Claude Desktop setup](./claude-desktop.md#pinning-a-specific-version).

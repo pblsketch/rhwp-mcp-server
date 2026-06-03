@@ -21,6 +21,13 @@ If the file doesn't exist, create it.
 
 ## 2. Register the server
 
+> **Important:** `npm install -g rhwp-mcp-server@beta` only installs the
+> package on your PATH. It does **not** make Claude Desktop see the server —
+> Claude Desktop reads its server list from `claude_desktop_config.json`
+> only. The config edit below is what completes the registration. Skipping
+> this step is the most common reason no `rhwp` tools appear in Claude
+> Desktop.
+
 Append (or merge) the `rhwp` entry under `mcpServers`:
 
 ```jsonc
