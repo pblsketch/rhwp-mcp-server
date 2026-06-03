@@ -12,9 +12,10 @@ Sprint 1 → 3 trail.
 ## What this is
 
 An [MCP](https://modelcontextprotocol.io) server that lets an LLM (Claude
-Desktop, Claude Code, Cursor, Claude Web/Mobile via base64) work with Korean
-`.hwp` and `.hwpx` files natively. The design balances **three personas**
-equally — none is the headline:
+Desktop, Claude Code, Cursor, Codex CLI, Antigravity CLI, Claude Web/Mobile
+via base64) work with Korean `.hwp` and `.hwpx` files natively. Any
+MCP-compliant client that speaks stdio can use it. The design balances
+**three personas** equally — none is the headline:
 
 1. **공공기관·HR·총무 자동화 (Form Filler)** — bulk-fill 한컴 양식 (이력서 / 공문 / 계약서 / 가정통신문) from structured data. **누름틀** and **table-cell** layouts both supported.
 2. **지식 노동자 / 개발자 (Document Editor)** — author new HWP / HWPX documents top-down: title, body, tables, styled char shape, paragraph layout. No 한컴오피스 license required.
@@ -67,10 +68,29 @@ start.
 Edit `%USERPROFILE%\.cursor\mcp.json` (Windows) or `~/.cursor/mcp.json`
 (macOS / Linux) with the same JSON block. Restart Cursor fully.
 
+### Codex CLI (OpenAI, one line)
+
+```bash
+npm install -g rhwp-mcp-server@beta
+codex mcp add rhwp -- rhwp-mcp
+```
+
+Or, skipping the global install: `codex mcp add rhwp -- npx -y rhwp-mcp-server@beta`.
+Verify with `codex mcp list`.
+
+### Antigravity CLI (Google)
+
+Edit the shared config at `~/.gemini/config/mcp_config.json` (Windows:
+`%USERPROFILE%\.gemini\config\mcp_config.json`) with the same `mcpServers`
+JSON block, then restart Antigravity. The config is shared across the
+Antigravity CLI and IDE. Note: strict JSON only — no comments.
+
 Full per-client setup, troubleshooting, and verification:
 - [`docs/setup/claude-code.md`](./docs/setup/claude-code.md)
 - [`docs/setup/claude-desktop.md`](./docs/setup/claude-desktop.md)
 - [`docs/setup/cursor.md`](./docs/setup/cursor.md)
+- [`docs/setup/codex-cli.md`](./docs/setup/codex-cli.md)
+- [`docs/setup/antigravity-cli.md`](./docs/setup/antigravity-cli.md)
 
 Once configured, try:
 
