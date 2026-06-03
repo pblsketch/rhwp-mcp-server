@@ -31,7 +31,7 @@ export const DESCRIPTION =
   "server's single-document session. Format is detected from the file " +
   "extension. Once open, all subsequent tools (hwp_list_fields, " +
   "hwp_fill_fields, hwp_insert_text, hwp_create_table, hwp_apply_action, " +
-  "hwp_preview, hwp_save_as) operate on this document.";
+  "hwp_save_as) operate on this document.";
 
 /**
  * Detect HWP vs HWPX from the path extension. Throws an INPUT-domain

@@ -4,8 +4,9 @@
  *
  * Wires:
  *   1. WASM warm-on-start (warmRhwp before server.connect)
- *   2. 16 tool registrations (10 v0.1 + 3 Sprint 2.5 remote-friendly +
- *      3 Sprint 2.6 cell-fill / base64-integrity)
+ *   2. 15 tool registrations (9 v0.1 + 3 Sprint 2.5 remote-friendly +
+ *      3 Sprint 2.6 cell-fill / base64-integrity). hwp_preview was
+ *      deferred to v0.2 in Sprint 3 prep — see ADR-0001.
  *   3. Stdio transport for local MCP clients (Claude Desktop, Cursor,
  *      Claude Code) — base64 tools also serve remote clients (Claude
  *      Web/Mobile, MCP-over-HTTP brokers).
@@ -32,7 +33,6 @@ import { registerHwpFillFields } from "./tools/fill_fields.js";
 import { registerHwpInsertText } from "./tools/insert_text.js";
 import { registerHwpCreateTable } from "./tools/create_table.js";
 import { registerHwpSetParagraphStyle } from "./tools/set_paragraph_style.js";
-import { registerHwpPreview } from "./tools/preview.js";
 import { registerHwpApplyAction } from "./tools/apply_action.js";
 import { registerHwpListActions } from "./tools/list_actions.js";
 import { registerHwpOpenBlank } from "./tools/open_blank.js";
@@ -79,7 +79,6 @@ async function main(): Promise<void> {
   registerHwpInsertText(server);
   registerHwpCreateTable(server);
   registerHwpSetParagraphStyle(server);
-  registerHwpPreview(server);
   registerHwpApplyAction(server);
   registerHwpListActions(server);
 
@@ -103,7 +102,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   process.stderr.write(
-    `${PKG_NAME} v${PKG_VERSION} ready on stdio (16 tools + hwp_ping)\n`,
+    `${PKG_NAME} v${PKG_VERSION} ready on stdio (15 tools + hwp_ping)\n`,
   );
 }
 

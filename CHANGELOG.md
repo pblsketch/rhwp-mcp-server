@@ -8,6 +8,12 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Removed — Sprint 3 prep (hwp_preview deferred to v0.2)
+- `hwp_preview` removed from the v0.1 tool surface. Tool count 16 → **15** (`ready on stdio (15 tools + hwp_ping)`). ADR-0001 rewritten to record the decision: MCP image content does not render inline in Claude Desktop today (collapsed inside the tool-use accordion — confirmed by `anthropic-sdk-python#1329` and sibling issues), and the Excalidraw-style inline preview uses a separate experimental EmbeddedResource ("MCP Apps") channel that is out of v0.1 scope.
+- Deleted `src/tools/preview.ts`. Removed import + registration from `src/server.ts`. Stripped `hwp_preview` entries from `scripts/_shared/schemas.ts`, `scripts/measure-tool-tokens.ts`, and `src/tools/open.ts`' description list. `schemas/snapshot.json` regenerated.
+- `TOOL_COUNT` in the shared schemas helper is now `15`.
+- Sprint 3 work that was gated on `hwp_preview` (renderer probe, ADR-0001 acceptance) is closed out; freed budget moves to corpus N=30 expansion for Decision Gate 3.0.
+
 ### Fixed — Sprint 2.6.1 (Real-form robustness)
 - `src/rhwp/tables.ts` — `getCellText` now wraps `doc.getTextInCell` in `try/catch` and returns `""` on rhwp panic. Real Korean forms contain merged/hidden cells that rhwp's `getTextInCell` may refuse with a per-cell panic; previously the locate_blanks walker aborted on the first such cell. The cell is still reported as blank with `current_text=""` so callers can still address it by coordinate.
 - `src/tools/fill_cells.ts` — `executeHwpFillCells` now checks `cellIndex(row, col) < table.cell_count` before calling `insertTextInCell`. Merged cells collapse multiple logical `(row, col)` tuples into one canonical `cell_idx`, so the linear `row * col_count + col` formula can over-shoot. Surfaces as `skipped[{reason:"out_of_range"}]` so the rest of the map still processes.

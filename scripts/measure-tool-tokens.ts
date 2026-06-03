@@ -68,10 +68,6 @@ import {
   HwpSetParagraphStyleOutput,
 } from "../src/tools/set_paragraph_style.js";
 import {
-  DESCRIPTION as DESC_PREVIEW,
-  HwpPreviewInput,
-} from "../src/tools/preview.js";
-import {
   DESCRIPTION as DESC_APPLY_ACTION,
   HwpApplyActionInput,
   HwpApplyActionOutput,
@@ -140,11 +136,6 @@ function describeAll(): ToolDescriptor[] {
       description: DESC_SET_PARA,
       input: zodToJsonSchema(HwpSetParagraphStyleInput, { target: "jsonSchema7" }),
       output: zodToJsonSchema(HwpSetParagraphStyleOutput, { target: "jsonSchema7" }),
-    },
-    {
-      name: "hwp_preview",
-      description: DESC_PREVIEW,
-      input: zodToJsonSchema(HwpPreviewInput, { target: "jsonSchema7" }),
     },
     {
       name: "hwp_apply_action",

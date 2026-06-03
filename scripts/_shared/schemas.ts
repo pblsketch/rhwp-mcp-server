@@ -9,11 +9,12 @@
  *
  * Add a new tool here, in ONE place, and both downstream scripts see it.
  *
- * `hwp_preview` is the only tool that ships an `output_shape_note` instead
- * of a real `output` JSON Schema, because its result is MCP image content
- * (`{ type: 'image', mimeType, data: base64 }`) rather than a
- * `structuredContent` payload — `schema-diff` consequently never compares
- * its output and the note documents that decision in the snapshot.
+ * NOTE: `hwp_preview` was removed in Sprint 3 prep (ADR-0001 deferred to
+ * v0.2). The MCP image content channel does NOT render inline in Claude
+ * Desktop today — image blocks land inside the collapsed tool-use
+ * accordion. Excalidraw-style inline preview uses the experimental
+ * EmbeddedResource (MCP Apps) mechanism, which is a separate v0.2+
+ * scope. See `docs/decisions/0001-image-renderer.md`.
  */
 
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -46,7 +47,6 @@ import {
   HwpSetParagraphStyleInput,
   HwpSetParagraphStyleOutput,
 } from "../../src/tools/set_paragraph_style.js";
-import { HwpPreviewInput } from "../../src/tools/preview.js";
 import {
   HwpApplyActionInput,
   HwpApplyActionOutput,
@@ -82,7 +82,7 @@ import {
 
 const opts = { target: "jsonSchema7" as const };
 
-export const TOOL_COUNT = 16;
+export const TOOL_COUNT = 15;
 
 export function liveSchemas(): Record<string, unknown> {
   return {
@@ -113,11 +113,6 @@ export function liveSchemas(): Record<string, unknown> {
     hwp_set_paragraph_style: {
       input: zodToJsonSchema(HwpSetParagraphStyleInput, opts),
       output: zodToJsonSchema(HwpSetParagraphStyleOutput, opts),
-    },
-    hwp_preview: {
-      input: zodToJsonSchema(HwpPreviewInput, opts),
-      output_shape_note:
-        "Returns MCP image content (type: 'image', mimeType: 'image/png', data: base64) rather than a structuredContent payload. No outputSchema.",
     },
     hwp_apply_action: {
       input: zodToJsonSchema(HwpApplyActionInput, opts),
