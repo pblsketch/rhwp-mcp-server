@@ -58,6 +58,22 @@ export interface HwpDocumentLike {
   applyParaFormat(sec_idx: number, para_idx: number, props_json: string): string;
   /** Sprint 2: search across the whole document. Returns rhwp JSON. */
   searchAllText(query: string, case_sensitive: boolean, include_cells: boolean): string;
+  /** Sprint 2.6: table row/col/cell counts. Returns JSON `{rowCount, colCount, cellCount}`. */
+  getTableDimensions(section_idx: number, parent_para_idx: number, control_idx: number): string;
+  /** Sprint 2.6: read text inside a table cell. Returns JSON. */
+  getTextInCell(
+    section_idx: number,
+    parent_para_idx: number,
+    control_idx: number,
+    cell_idx: number,
+    cell_para_idx: number,
+    char_offset: number,
+    count: number,
+  ): string;
+  /** Sprint 2.6: paragraph count in a section. */
+  getParagraphCount(section_idx: number): number;
+  /** Sprint 2.6: total section count. */
+  getSectionCount(): number;
   /** wasm-bindgen finaliser; safe to call multiple times. */
   free?(): void;
   /** Same as free() — the explicit-resource-management bridge. */

@@ -4,7 +4,8 @@
  *
  * Wires:
  *   1. WASM warm-on-start (warmRhwp before server.connect)
- *   2. 13 tool registrations (10 v0.1 + 3 Sprint 2.5 remote-friendly)
+ *   2. 16 tool registrations (10 v0.1 + 3 Sprint 2.5 remote-friendly +
+ *      3 Sprint 2.6 cell-fill / base64-integrity)
  *   3. Stdio transport for local MCP clients (Claude Desktop, Cursor,
  *      Claude Code) — base64 tools also serve remote clients (Claude
  *      Web/Mobile, MCP-over-HTTP brokers).
@@ -37,6 +38,9 @@ import { registerHwpListActions } from "./tools/list_actions.js";
 import { registerHwpOpenBlank } from "./tools/open_blank.js";
 import { registerHwpOpenBase64 } from "./tools/open_base64.js";
 import { registerHwpSaveAsBase64 } from "./tools/save_as_base64.js";
+import { registerHwpLocateBlanks } from "./tools/locate_blanks.js";
+import { registerHwpFillCells } from "./tools/fill_cells.js";
+import { registerHwpOpenBase64Validated } from "./tools/open_base64_validated.js";
 
 const PKG_NAME = "rhwp-mcp-server";
 const PKG_VERSION = "0.1.0-alpha.0";
@@ -86,6 +90,12 @@ async function main(): Promise<void> {
   registerHwpOpenBase64(server);
   registerHwpSaveAsBase64(server);
 
+  // Sprint 2.6 cell-based fill + base64 integrity (ADR-0004). These
+  // complement, never replace, the field-based and unchecked-base64 tools.
+  registerHwpLocateBlanks(server);
+  registerHwpFillCells(server);
+  registerHwpOpenBase64Validated(server);
+
   // Step 3: connect stdio transport. MCP clients spawn this process; framing
   // is JSON-RPC on stdin/stdout. Anything written to stdout outside the
   // framing will corrupt the connection — keep logs on stderr.
@@ -93,7 +103,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   process.stderr.write(
-    `${PKG_NAME} v${PKG_VERSION} ready on stdio (13 tools + hwp_ping)\n`,
+    `${PKG_NAME} v${PKG_VERSION} ready on stdio (16 tools + hwp_ping)\n`,
   );
 }
 

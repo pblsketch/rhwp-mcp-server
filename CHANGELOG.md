@@ -8,6 +8,21 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Added — Sprint 2.6 (Cell-based fill + base64 integrity)
+- `hwp_locate_blanks` — table-cell counterpart of `hwp_list_fields`. Walks every body table, reports cells whose text is empty after trim, suggests a label via `inferCellLabel` (left-neighbor → header-row → null). Output `{ blanks: [{ table_idx, row, col, suggested_label, current_text, coords: { section_idx, parent_para_idx, control_idx, cell_idx } }], total, table_count }`. Use BEFORE `hwp_fill_cells` when the cell layout isn't known. Does NOT mutate the document.
+- `hwp_fill_cells` — table-cell counterpart of `hwp_fill_fields`. Fills cells by `'row,col'` coordinate OR by label (matched against `inferCellLabel`, case-insensitive + whitespace-normalized). Unresolvable keys land in `skipped[]` with a typed reason (`unknown_label` / `out_of_range` / `coord_format` / `no_table`); the rest of the map still processes — never abort-on-first-failure.
+- `hwp_open_base64_validated` — hardens `hwp_open_base64` with explicit length + CRC32 integrity checks BEFORE the bytes reach rhwp. Input gains optional `expected_bytes` and `expected_crc32` (number or hex string both accepted). Wire corruption surfaces as a typed `parse/BAD_LENGTH` or `parse/BAD_CHECKSUM` with actual-vs-expected values instead of a WASM panic. CRC32 uses Node 20+'s built-in `zlib.crc32` (no new dependency, zlib polynomial 0xEDB88320).
+- New module `src/rhwp/tables.ts` — shared `findAllTables`, `getCellText`, `cellIndex`, `inferCellLabel`. Reused across the two cell-based tools so the matrix walk + label heuristic has one canonical implementation.
+- New ADR-0004 (`docs/decisions/0004-cell-based-fill.md`, Accepted) — documents why cell-fill is a peer of field-fill (not a replacement), the left-neighbor-first label heuristic, the `(sec, para, control_idx=0)` table-enumeration convention, and the v0.1.6 known limits (merged cells, header/footer tables, nested tables, multi-control paragraphs).
+- Triggered by user-reported scenario: a real Korean 학교/관공서 résumé form had no 누름틀, `hwp_list_fields` returned `[]`, and the same 35 KB payload also corrupted on base64 wire transit, triggering a WASM panic.
+
+### Changed — Sprint 2.6 DRY cleanup
+- `scripts/_shared/schemas.ts` — new module holding the SINGLE 16-tool `liveSchemas()` definition. `scripts/schema-snapshot.ts` and `scripts/schema-diff.ts` both import it instead of maintaining duplicate tool lists. Closes the architect-noted DRY violation deferred from Sprint 2.5.
+- `src/server.ts` — registers the three Sprint 2.6 tools; ready message updates from `13 tools + hwp_ping` to `16 tools + hwp_ping`.
+- `schemas/snapshot.json` — `tool_count_expected` grows to 16 (3 entries added, 13 v0.1 / Sprint 2.5 shapes UNCHANGED). Acknowledged here: `hwp_locate_blanks`, `hwp_fill_cells`, `hwp_open_base64_validated`.
+- `src/rhwp/types.ts` — `HwpDocumentLike` gains `getTableDimensions`, `getTextInCell`, `getParagraphCount`, `getSectionCount` to back the new helpers (catch-all index signature still covers everything else).
+- `src/tools/open_base64.ts` — `decodeBase64Strict` exported so `hwp_open_base64_validated` can reuse the same strict round-trip without duplicating the implementation.
+
 ### Added — Sprint 2.5 (Remote-friendly tools)
 - `hwp_open_blank` — bootstrap a blank document into the SessionStore with no filesystem path. Internally calls `HwpDocument.createEmpty()` + `createBlankDocument()` (same path Sprint 1.5's gate exercises). Returns `{ ok, format: 'hwpx', page_count }`.
 - `hwp_open_base64` — load a document from a base64-encoded byte string. Input `{ bytes_base64, format? }`, output `{ ok, format, page_count, bytes_in }`. Auto-detects format via `getSourceFormat()` when the hint is omitted. Strict base64 validation throws `parse/BAD_BASE64` on garbage characters and on zero-byte decodes (e.g. padding-only input).

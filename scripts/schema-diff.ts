@@ -12,7 +12,8 @@
  *
  * Behaviour:
  *   - Loads schemas/snapshot.json
- *   - Recomputes live schemas via zodToJsonSchema on the same tool modules
+ *   - Recomputes live schemas via the shared scripts/_shared/schemas.ts
+ *     (the same source schema-snapshot.ts uses)
  *   - Performs a deep equal comparison per tool
  *   - For any diff, checks whether the tool name appears in CHANGELOG.md's
  *     ## [Unreleased] section. If yes, the diff is acknowledged and the
@@ -23,57 +24,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { zodToJsonSchema } from "zod-to-json-schema";
-
-import {
-  HwpOpenInput,
-  HwpOpenOutput,
-} from "../src/tools/open.js";
-import {
-  HwpSaveAsInput,
-  HwpSaveAsOutput,
-} from "../src/tools/save_as.js";
-import {
-  HwpListFieldsInput,
-  HwpListFieldsOutput,
-} from "../src/tools/list_fields.js";
-import {
-  HwpFillFieldsInput,
-  HwpFillFieldsOutput,
-} from "../src/tools/fill_fields.js";
-import {
-  HwpInsertTextInput,
-  HwpInsertTextOutput,
-} from "../src/tools/insert_text.js";
-import {
-  HwpCreateTableInput,
-  HwpCreateTableOutput,
-} from "../src/tools/create_table.js";
-import {
-  HwpSetParagraphStyleInput,
-  HwpSetParagraphStyleOutput,
-} from "../src/tools/set_paragraph_style.js";
-import { HwpPreviewInput } from "../src/tools/preview.js";
-import {
-  HwpApplyActionInput,
-  HwpApplyActionOutput,
-} from "../src/tools/apply_action.js";
-import {
-  HwpListActionsInput,
-  HwpListActionsOutput,
-} from "../src/tools/list_actions.js";
-import {
-  HwpOpenBlankInput,
-  HwpOpenBlankOutput,
-} from "../src/tools/open_blank.js";
-import {
-  HwpOpenBase64Input,
-  HwpOpenBase64Output,
-} from "../src/tools/open_base64.js";
-import {
-  HwpSaveAsBase64Input,
-  HwpSaveAsBase64Output,
-} from "../src/tools/save_as_base64.js";
+import { liveSchemas } from "./_shared/schemas.js";
 
 interface SnapshotShape {
   version: string;
@@ -83,62 +34,6 @@ interface SnapshotShape {
 const REPO_ROOT = process.cwd();
 const SNAPSHOT_PATH = resolve(REPO_ROOT, "schemas", "snapshot.json");
 const CHANGELOG_PATH = resolve(REPO_ROOT, "CHANGELOG.md");
-
-function liveSchemas(): Record<string, unknown> {
-  return {
-    hwp_open: {
-      input: zodToJsonSchema(HwpOpenInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpOpenOutput, { target: "jsonSchema7" }),
-    },
-    hwp_save_as: {
-      input: zodToJsonSchema(HwpSaveAsInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpSaveAsOutput, { target: "jsonSchema7" }),
-    },
-    hwp_list_fields: {
-      input: zodToJsonSchema(HwpListFieldsInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpListFieldsOutput, { target: "jsonSchema7" }),
-    },
-    hwp_fill_fields: {
-      input: zodToJsonSchema(HwpFillFieldsInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpFillFieldsOutput, { target: "jsonSchema7" }),
-    },
-    hwp_insert_text: {
-      input: zodToJsonSchema(HwpInsertTextInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpInsertTextOutput, { target: "jsonSchema7" }),
-    },
-    hwp_create_table: {
-      input: zodToJsonSchema(HwpCreateTableInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpCreateTableOutput, { target: "jsonSchema7" }),
-    },
-    hwp_set_paragraph_style: {
-      input: zodToJsonSchema(HwpSetParagraphStyleInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpSetParagraphStyleOutput, { target: "jsonSchema7" }),
-    },
-    hwp_preview: {
-      input: zodToJsonSchema(HwpPreviewInput, { target: "jsonSchema7" }),
-    },
-    hwp_apply_action: {
-      input: zodToJsonSchema(HwpApplyActionInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpApplyActionOutput, { target: "jsonSchema7" }),
-    },
-    hwp_list_actions: {
-      input: zodToJsonSchema(HwpListActionsInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpListActionsOutput, { target: "jsonSchema7" }),
-    },
-    hwp_open_blank: {
-      input: zodToJsonSchema(HwpOpenBlankInput, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpOpenBlankOutput, { target: "jsonSchema7" }),
-    },
-    hwp_open_base64: {
-      input: zodToJsonSchema(HwpOpenBase64Input, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpOpenBase64Output, { target: "jsonSchema7" }),
-    },
-    hwp_save_as_base64: {
-      input: zodToJsonSchema(HwpSaveAsBase64Input, { target: "jsonSchema7" }),
-      output: zodToJsonSchema(HwpSaveAsBase64Output, { target: "jsonSchema7" }),
-    },
-  };
-}
 
 /**
  * Stable canonical JSON serialisation — sorts object keys so the diff is
@@ -207,7 +102,6 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Drift exists. Check CHANGELOG Unreleased.
   const unreleased = await readChangelogUnreleased();
   const unmentioned = affected.filter((name) => !unreleased.includes(name));
 

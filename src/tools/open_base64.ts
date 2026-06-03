@@ -54,7 +54,7 @@ export interface HwpOpenBase64Result {
  * to detect malformed input early (BAD_BASE64 is more useful than a
  * downstream parse panic).
  */
-function decodeBase64Strict(s: string): Uint8Array {
+export function decodeBase64Strict(s: string): Uint8Array {
   const normalized = s.replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "");
   const buf = Buffer.from(normalized, "base64");
   // Strict round-trip check: Buffer.from drops invalid characters silently,
