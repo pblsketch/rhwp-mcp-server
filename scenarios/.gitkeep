@@ -1,12 +1,19 @@
 # scenarios/
 
-Demo scenario scripts + recordings. Five scenarios per the plan's Sprint 3 /
-Sprint 3.5 gates:
+Demo scenario scripts + recordings. Each scenario is a Claude Desktop
+narrative — natural-language user turn → exact MCP tool call → expected
+response — pinned to one of the three product personas. Scenarios double
+as reproducible test cases: every command is runnable from a fresh clone
+once `corpus/synthetic/` is populated (`npm run corpus:generate`).
 
-- `01-resume-fill.md`              (Form persona)
-- `02-meeting-notes.md`            (Authoring persona)
-- `03-one-page-report.md`          (Authoring persona)
-- `04-bulk-official-letters.md`    (Form persona)
-- `05-hwp-to-hwpx-roundtrip.md`    (Compatibility persona)
+| Scenario                              | Persona       | Sprint | Tools exercised                                              |
+| ------------------------------------- | ------------- | ------ | ------------------------------------------------------------ |
+| `01-resume-fill.md`                   | Form          | 1      | open, list_fields, fill_fields, save_as                      |
+| `02-meeting-notes.md`                 | Authoring     | 2      | open, set_paragraph_style, insert_text, apply_action, create_table, save_as |
+| `03-one-page-report.md`               | Authoring     | 2      | open, set_paragraph_style, insert_text, apply_action(replaceAll), create_table, save_as |
+| `04-bulk-official-letters.md`         | Form (scale)  | 3      | open ×N, list_fields, fill_fields ×N, save_as ×N             |
+| `05-hwp-identity-roundtrip.md`        | Compatibility | 1.5    | corpus-runner gate (exportHwpVerify, exportHwp)              |
+| `06-hwp-to-hwpx-export.md`            | Compatibility | 3      | open, apply_action(exportHwpVerify), save_as (format flip)   |
+| `07-error-recovery.md`                | cross-cutting | 2+     | typed RhwpError shapes across all tools                      |
 
 `recordings/` holds the screen captures referenced by Sprint exit criteria.
