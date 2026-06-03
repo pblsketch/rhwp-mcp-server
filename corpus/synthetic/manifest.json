@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T17:18:13.909Z",
+  "generatedAt": "2026-06-03T16:59:37.858Z",
   "rhwpCoreVersion": "0.7.13",
   "cases": [
     {
@@ -30,6 +30,36 @@
       "id": "mixed",
       "filename": "mixed.hwp",
       "description": "Text + 2×2 table + center alignment in one document.",
+      "bytesLen": 13312
+    },
+    {
+      "id": "table-label-value",
+      "filename": "table-label-value.hwp",
+      "description": "Dense 라벨→빈칸 grid: every odd column is a label, every even column is the blank it labels (left-neighbor heuristic).",
+      "bytesLen": 13312
+    },
+    {
+      "id": "table-colon-label",
+      "filename": "table-colon-label.hwp",
+      "description": "Labels carrying a trailing colon ('이름:') and a parenthetical hint — punctuation must be preserved verbatim in the label.",
+      "bytesLen": 13312
+    },
+    {
+      "id": "table-multirow-header",
+      "filename": "table-multirow-header.hwp",
+      "description": "Stacked header rows above empty data columns: row 0 group header ('상반기') over row 1 sub-header ('매출'/'비용'), data rows below exercise the multi-row-header heuristic.",
+      "bytesLen": 13312
+    },
+    {
+      "id": "table-stacked-label",
+      "filename": "table-stacked-label.hwp",
+      "description": "Single-column stacked layout where each label sits directly above its blank (upper-neighbor heuristic): row 0 empty header, then label/blank pairs stacked vertically.",
+      "bytesLen": 13312
+    },
+    {
+      "id": "table-sparse-merge",
+      "filename": "table-sparse-merge.hwp",
+      "description": "Sparse 라벨→빈칸 grid with mostly-empty rows — a merge-style layout where the linear row*cols+col index can over-shoot cell_count; bounds the cell walker (ADR-0004 merged-cell limit).",
       "bytesLen": 13312
     }
   ]

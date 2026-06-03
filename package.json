@@ -6,6 +6,16 @@
   "license": "MIT",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./skill": {
+      "types": "./dist/skill/index.d.ts",
+      "import": "./dist/skill/index.js"
+    }
+  },
   "bin": {
     "rhwp-mcp": "dist/server.js"
   },
@@ -30,6 +40,7 @@
     "probe:char-format": "tsx scripts/probe-char-format.ts",
     "generate:catalog-manifest": "tsx scripts/generate-catalog-manifest.ts",
     "corpus:generate": "tsx scripts/generate-synthetic-corpus.ts",
+    "measure:label-coverage": "tsx scripts/measure-label-coverage.ts",
     "gate:binary-identity": "tsx scripts/corpus-runner.ts",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\""
   },

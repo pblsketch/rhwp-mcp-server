@@ -4,9 +4,10 @@
  *
  * Wires:
  *   1. WASM warm-on-start (warmRhwp before server.connect)
- *   2. 15 tool registrations (9 v0.1 + 3 Sprint 2.5 remote-friendly +
- *      3 Sprint 2.6 cell-fill / base64-integrity). hwp_preview was
- *      deferred to v0.2 in Sprint 3 prep — see ADR-0001.
+ *   2. 16 tool registrations (9 v0.1 + 3 Sprint 2.5 remote-friendly +
+ *      3 Sprint 2.6 cell-fill / base64-integrity + 1 engine-capability
+ *      surface). hwp_preview was deferred to v0.2 in Sprint 3 prep — see
+ *      ADR-0001.
  *   3. Stdio transport for local MCP clients (Claude Desktop, Cursor,
  *      Claude Code) — base64 tools also serve remote clients (Claude
  *      Web/Mobile, MCP-over-HTTP brokers).
@@ -41,6 +42,7 @@ import { registerHwpSaveAsBase64 } from "./tools/save_as_base64.js";
 import { registerHwpLocateBlanks } from "./tools/locate_blanks.js";
 import { registerHwpFillCells } from "./tools/fill_cells.js";
 import { registerHwpOpenBase64Validated } from "./tools/open_base64_validated.js";
+import { registerHwpEngineStatus } from "./tools/engine_status.js";
 
 const PKG_NAME = "rhwp-mcp-server";
 const PKG_VERSION = "0.1.0-beta.1";
@@ -95,6 +97,11 @@ async function main(): Promise<void> {
   registerHwpFillCells(server);
   registerHwpOpenBase64Validated(server);
 
+  // Phase 2 engine abstraction — read-only capability surface. Reports which
+  // document engines are usable on this host so clients can reason about
+  // fidelity and fallback. Additive, opt-in; opens/mutates nothing.
+  registerHwpEngineStatus(server);
+
   // Step 3: connect stdio transport. MCP clients spawn this process; framing
   // is JSON-RPC on stdin/stdout. Anything written to stdout outside the
   // framing will corrupt the connection — keep logs on stderr.
@@ -102,7 +109,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   process.stderr.write(
-    `${PKG_NAME} v${PKG_VERSION} ready on stdio (15 tools + hwp_ping)\n`,
+    `${PKG_NAME} v${PKG_VERSION} ready on stdio (16 tools + hwp_ping)\n`,
   );
 }
 

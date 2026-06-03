@@ -79,10 +79,14 @@ import {
   HwpOpenBase64ValidatedInput,
   HwpOpenBase64ValidatedOutput,
 } from "../../src/tools/open_base64_validated.js";
+import {
+  HwpEngineStatusInput,
+  HwpEngineStatusOutput,
+} from "../../src/tools/engine_status.js";
 
 const opts = { target: "jsonSchema7" as const };
 
-export const TOOL_COUNT = 15;
+export const TOOL_COUNT = 16;
 
 export function liveSchemas(): Record<string, unknown> {
   return {
@@ -145,6 +149,10 @@ export function liveSchemas(): Record<string, unknown> {
     hwp_open_base64_validated: {
       input: zodToJsonSchema(HwpOpenBase64ValidatedInput, opts),
       output: zodToJsonSchema(HwpOpenBase64ValidatedOutput, opts),
+    },
+    hwp_engine_status: {
+      input: zodToJsonSchema(HwpEngineStatusInput, opts),
+      output: zodToJsonSchema(HwpEngineStatusOutput, opts),
     },
   };
 }

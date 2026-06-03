@@ -43,6 +43,11 @@
 2. **새 문서 작성 (지식 노동자 / 개발자)** — 빈 문서에서 제목·본문·표·글자 서식·문단 레이아웃까지 위에서 아래로 작성. 한컴오피스 라이선스 불필요.
 3. **호환성 브리지 (한컴오피스 없는 환경)** — HWP ↔ HWPX 안전하게 읽기/쓰기. 저장 시 원본 보존 여부를 검증하는 binary-identity 게이트 내장 (ADR-0002).
 
+> **표면(surface)은 교체 가능합니다.** 같은 한글 문서 코어를 MCP 서버로도, MCP
+> 밖에서도 호출할 수 있습니다. 본인 모델/API 키를 이미 가진 호스트에서 별도 구독
+> 없이 동일한 작업을 직접 구동하려면 [skill 표면](./docs/surfaces/skill.md)을
+> 참고하세요 (신규 도구·신규 스키마 없음 — 기존 코어 재사용).
+
 ---
 
 ## 현재 상태
@@ -291,6 +296,7 @@ Feedback program details:
 | [0004](./docs/decisions/0004-cell-based-fill.md) | Cell-based fill peer to field-based fill (Sprint 2.6) | Accepted |
 | [0005](./docs/decisions/0005-char-format-contract.md) | `hwp_insert_text` style → applyCharFormat chain (Sprint 2.7) | Accepted |
 | [0006](./docs/decisions/0006-decision-gate-3.md) | Decision Gate 3.0 structure (Pass A + Pass B combined, threshold escalation) | Accepted (structure); verdict pending N=30 corpus |
+| [0007](./docs/decisions/0007-engine-abstraction.md) | Engine-neutral `DocumentEngine` abstraction (WASM default, automation engine as capability-gated slot) | Accepted |
 
 ## License
 

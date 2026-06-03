@@ -3,9 +3,8 @@ import { crc32 } from "node:zlib";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { getRhwp, warmRhwp } from "../rhwp/loader.js";
+import { ensureEngine } from "../rhwp/loader.js";
 import { RhwpError, wrapPanic } from "../rhwp/errors.js";
-import type { RhwpModuleLike } from "../rhwp/types.js";
 import { sessionStore } from "../session/store.js";
 import { decodeBase64Strict } from "./open_base64.js";
 
@@ -89,8 +88,7 @@ export async function executeHwpOpenBase64Validated(input: {
   expected_crc32?: number | string;
   format?: "hwp" | "hwpx";
 }): Promise<HwpOpenBase64ValidatedResult> {
-  await warmRhwp();
-  const rhwp = getRhwp() as RhwpModuleLike;
+  const engine = await ensureEngine();
 
   const bytes = decodeBase64Strict(input.bytes_base64);
 
@@ -118,7 +116,7 @@ export async function executeHwpOpenBase64Validated(input: {
     }
   }
 
-  const doc = await wrapPanic("parse", () => new rhwp.HwpDocument(bytes));
+  const doc = await wrapPanic("parse", () => engine.openFromBytes(bytes, input.format));
   const detected = await wrapPanic("parse", () => doc.getSourceFormat());
   const format: "hwp" | "hwpx" =
     detected === "hwp" || detected === "hwpx" ? detected : (input.format ?? "hwpx");

@@ -27,6 +27,14 @@ import { createRequire } from "node:module";
 import { performance } from "node:perf_hooks";
 
 import { RhwpError } from "./errors.js";
+import type { DocumentEngine } from "./types.js";
+import { WasmDocumentEngine } from "./engine/wasm-engine.js";
+import { ComDocumentEngine } from "./engine/com-engine.js";
+import {
+  COM_ENGINE_NAME,
+  WASM_ENGINE_NAME,
+  probeComRuntime,
+} from "./engine/capabilities.js";
 
 // The shape of @rhwp/core 0.7.x is documented in
 // `docs/measurements/rhwp-field-api.md`. Until Sprint 1 wires the typed
@@ -158,6 +166,173 @@ export function getWarmDurationMs(): number | null {
 }
 
 /**
+ * Engine registry — maps an engine name to its constructed instance.
+ *
+ * The default engine is WASM (@rhwp/core). The registry exists so additional
+ * engine implementations can be registered as separate slots without touching
+ * the tool layer, which only ever asks for "an engine" via the factory below.
+ *
+ * "auto" resolves to the preferred available engine (host-runtime when its
+ * capability probe reports AVAILABLE, otherwise the WASM fallback); explicit
+ * names ("wasm", "com") select a specific implementation. The concrete-name
+ * resolution lives in `resolveEngineName`, so the registry stores and looks up
+ * engines strictly by their concrete `engine.name`.
+ */
+class EngineRegistry {
+  private readonly engines = new Map<string, DocumentEngine>();
+
+  register(engine: DocumentEngine): void {
+    this.engines.set(engine.name, engine);
+  }
+
+  /** Look up an engine by its concrete name ("wasm" / "com"). */
+  get(concreteName: string): DocumentEngine | undefined {
+    return this.engines.get(concreteName);
+  }
+
+  clear(): void {
+    this.engines.clear();
+  }
+}
+
+const engineRegistry = new EngineRegistry();
+
+/**
+ * Construct (but do not warm) the engine instance for a concrete name.
+ */
+function constructEngine(concreteName: string): DocumentEngine {
+  if (concreteName === COM_ENGINE_NAME) {
+    return new ComDocumentEngine();
+  }
+  return new WasmDocumentEngine();
+}
+
+/**
+ * Decide whether the host-runtime engine should be selected right now.
+ *
+ * Two conditions must both hold: (1) its capability probe reports AVAILABLE,
+ * and (2) the engine implementation is `operational` — i.e. its document
+ * methods are actually wired. In this phase the host-runtime engine is a slot
+ * (`operational === false`), so this returns false even when the runtime is
+ * detected, and automatic selection falls back to the WASM engine. The
+ * `operational` flag is the single source of truth, so when live driving
+ * lands this gate opens automatically with no further change here.
+ */
+function comSelectable(): boolean {
+  if (probeComRuntime().status !== "AVAILABLE") {
+    return false;
+  }
+  return constructEngine(COM_ENGINE_NAME).operational;
+}
+
+/**
+ * Resolve a requested engine name to the concrete engine that should actually
+ * be warmed/returned, applying capability-driven selection.
+ *
+ * - `undefined` / `"auto"` → host-runtime engine when it is selectable
+ *   (AVAILABLE + operational), otherwise the WASM fallback.
+ * - `"com"` → the host-runtime engine only when selectable; otherwise WASM
+ *   (the slot's document methods would reject anyway, so warming the usable
+ *   engine keeps `getEngine` viable).
+ * - `"wasm"` → WASM.
+ * - anything else → UNKNOWN_ENGINE.
+ *
+ * Returns the resolved concrete engine name. Throws only for unknown names.
+ */
+function resolveEngineName(name?: string): string {
+  if (name === undefined || name === "auto") {
+    return comSelectable() ? COM_ENGINE_NAME : WASM_ENGINE_NAME;
+  }
+
+  if (name === WASM_ENGINE_NAME) {
+    return WASM_ENGINE_NAME;
+  }
+
+  if (name === COM_ENGINE_NAME) {
+    return comSelectable() ? COM_ENGINE_NAME : WASM_ENGINE_NAME;
+  }
+
+  throw new RhwpError({
+    category: "other",
+    code: "UNKNOWN_ENGINE",
+    message:
+      `Unknown engine '${name}'. Known engines are ` +
+      `'${WASM_ENGINE_NAME}', '${COM_ENGINE_NAME}', and 'auto'.`,
+  });
+}
+
+/**
+ * Ensure an engine is warmed and registered, returning its handle.
+ *
+ * For the WASM engine this warms the underlying module (via `warmRhwp`) before
+ * constructing and registering the engine instance. The host-runtime engine
+ * needs no WASM warm. This is the asynchronous counterpart to `getEngine`:
+ * callers `await ensureEngine()` once (typically at a creation boundary), then
+ * may use the synchronous `getEngine()` thereafter.
+ *
+ * Engine selection applies capability-driven fallback (see `resolveEngineName`):
+ * `"auto"` and `"com"` resolve to the host-runtime engine only when its
+ * capability probe reports AVAILABLE, otherwise to WASM. Unknown engine names
+ * throw RhwpError(other, UNKNOWN_ENGINE).
+ */
+export async function ensureEngine(name?: string): Promise<DocumentEngine> {
+  const resolved = resolveEngineName(name);
+
+  const existing = engineRegistry.get(resolved);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  // The WASM-backed engine needs the module warmed before use. The
+  // host-runtime engine carries no WASM dependency, so it skips the warm.
+  if (resolved === WASM_ENGINE_NAME) {
+    await warmRhwp();
+  }
+
+  const engine = constructEngine(resolved);
+  engineRegistry.register(engine);
+  return engine;
+}
+
+/**
+ * Concrete engine name that `ensureEngine("auto")` / `getEngine("auto")` would
+ * resolve to right now, applying capability-driven selection. Exposed so the
+ * capability surface reports the same `active` engine the loader would pick —
+ * a single source of truth for selection.
+ */
+export function resolveActiveEngine(): string {
+  return resolveEngineName("auto");
+}
+
+/**
+ * Return an already-warmed, registered engine handle synchronously.
+ *
+ * Throws RhwpError(other, ENGINE_NOT_READY) if `ensureEngine()` has not
+ * completed for this engine yet — mirroring `getRhwp()`'s NOT_WARMED contract.
+ * This split keeps a synchronous factory (`getEngine`) for the hot path while
+ * the asynchronous warming (`ensureEngine`) happens once at a boundary.
+ *
+ * Selection mirrors `ensureEngine`: the same capability-driven resolution maps
+ * `"auto"` / `"com"` to the concrete engine name, so a handle warmed by
+ * `ensureEngine("auto")` is found by `getEngine("auto")`. Unknown names throw
+ * UNKNOWN_ENGINE (via the shared resolver).
+ */
+export function getEngine(name?: string): DocumentEngine {
+  const resolved = resolveEngineName(name);
+  const engine = engineRegistry.get(resolved);
+  if (engine === undefined) {
+    throw new RhwpError({
+      category: "other",
+      code: "ENGINE_NOT_READY",
+      message:
+        `Engine '${resolved}' accessed before ensureEngine('${name ?? "auto"}') completed. ` +
+        "Ensure the creation boundary awaits ensureEngine() first.",
+    });
+  }
+  return engine;
+}
+
+/**
  * Reset state — used only by tests. Do not call from production code.
  *
  * @internal
@@ -166,4 +341,5 @@ export function __resetForTests(): void {
   rhwpModule = null;
   warmPromise = null;
   warmDurationMs = null;
+  engineRegistry.clear();
 }

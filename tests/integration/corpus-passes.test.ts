@@ -21,11 +21,11 @@ import {
   runPassA,
   selectThreshold,
 } from "../../scripts/corpus-runner.js";
-import { warmRhwp } from "../../src/rhwp/loader.js";
-import type { HwpDocumentLike, RhwpModuleLike } from "../../src/rhwp/types.js";
+import { ensureEngine } from "../../src/rhwp/loader.js";
+import type { DocumentEngine, HwpDocumentLike } from "../../src/rhwp/types.js";
 
-function buildBlankBytes(mod: RhwpModuleLike): Uint8Array {
-  const doc = mod.HwpDocument.createEmpty();
+async function buildBlankBytes(engine: DocumentEngine): Promise<Uint8Array> {
+  const doc = await engine.createBlank();
   (doc as unknown as { createBlankDocument(): string }).createBlankDocument();
   const bytes = doc.exportHwp();
   if (typeof (doc as HwpDocumentLike).free === "function") {
@@ -39,15 +39,15 @@ function buildBlankBytes(mod: RhwpModuleLike): Uint8Array {
 }
 
 describe("Sprint 3 — corpus-runner Pass A skip path", () => {
-  let mod: RhwpModuleLike;
+  let engine: DocumentEngine;
 
   beforeAll(async () => {
-    mod = (await warmRhwp()) as RhwpModuleLike;
+    engine = await ensureEngine();
   });
 
-  it("Pass A skips a synthetic blank doc (zero form fields)", () => {
-    const bytes = buildBlankBytes(mod);
-    const result = runPassA(mod, bytes, "hwp");
+  it("Pass A skips a synthetic blank doc (zero form fields)", async () => {
+    const bytes = await buildBlankBytes(engine);
+    const result = await runPassA(engine, bytes, "hwp");
     expect(result.status).toBe("skip");
     expect(result.fieldCount).toBe(0);
     expect(result.filledCount).toBe(0);

@@ -4,9 +4,8 @@ import { extname } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { getRhwp } from "../rhwp/loader.js";
+import { ensureEngine } from "../rhwp/loader.js";
 import { RhwpError, wrapPanic } from "../rhwp/errors.js";
-import type { RhwpModuleLike } from "../rhwp/types.js";
 import { sessionStore } from "../session/store.js";
 
 export const HwpOpenInput = z
@@ -91,8 +90,8 @@ export async function executeHwpOpen(input: { path: string }): Promise<HwpOpenRe
     }
   })();
 
-  const rhwp = getRhwp() as RhwpModuleLike;
-  const doc = await wrapPanic("parse", () => new rhwp.HwpDocument(new Uint8Array(bytes)));
+  const engine = await ensureEngine();
+  const doc = await wrapPanic("parse", () => engine.openFromBytes(new Uint8Array(bytes), sourceFormat));
 
   // Cross-check the format rhwp inferred from the bytes against the
   // extension. We trust rhwp's view for the final answer but record an
