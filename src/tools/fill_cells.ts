@@ -137,6 +137,16 @@ export async function executeHwpFillCells(input: {
     }
 
     const idx = cellIndex(table, row, col);
+    // Bounds check against the table's real cell_count. Merged cells (the
+    // dominant "form layout" pattern in Korean templates) collapse multiple
+    // logical (row, col) tuples into one canonical cell_idx, so the linear
+    // row*col_count+col formula can over-shoot. ADR-0004 §"Known limits"
+    // #2 documents this — surface it as out_of_range so the rest of the
+    // map still processes.
+    if (idx >= table.cell_count) {
+      skipped.push({ key, reason: "out_of_range" });
+      continue;
+    }
     await wrapPanic("field", () =>
       doc.insertTextInCell(
         table.section_idx,

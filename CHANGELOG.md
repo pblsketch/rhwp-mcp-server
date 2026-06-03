@@ -8,6 +8,12 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Fixed — Sprint 2.6.1 (Real-form robustness)
+- `src/rhwp/tables.ts` — `getCellText` now wraps `doc.getTextInCell` in `try/catch` and returns `""` on rhwp panic. Real Korean forms contain merged/hidden cells that rhwp's `getTextInCell` may refuse with a per-cell panic; previously the locate_blanks walker aborted on the first such cell. The cell is still reported as blank with `current_text=""` so callers can still address it by coordinate.
+- `src/tools/fill_cells.ts` — `executeHwpFillCells` now checks `cellIndex(row, col) < table.cell_count` before calling `insertTextInCell`. Merged cells collapse multiple logical `(row, col)` tuples into one canonical `cell_idx`, so the linear `row * col_count + col` formula can over-shoot. Surfaces as `skipped[{reason:"out_of_range"}]` so the rest of the map still processes.
+- `src/tools/locate_blanks.ts` — same `cellIndex >= cell_count` guard in the walker so the row/col iteration doesn't report ghost blanks for cells that don't actually exist in merged-cell tables.
+- All three changes implement the ADR-0004 §"Known limits #2 (merged cells)" mitigation discovered during real-resume testing (35-cell form with 3 merged-cell skips).
+
 ### Added — Sprint 2.6 (Cell-based fill + base64 integrity)
 - `hwp_locate_blanks` — table-cell counterpart of `hwp_list_fields`. Walks every body table, reports cells whose text is empty after trim, suggests a label via `inferCellLabel` (left-neighbor → header-row → null). Output `{ blanks: [{ table_idx, row, col, suggested_label, current_text, coords: { section_idx, parent_para_idx, control_idx, cell_idx } }], total, table_count }`. Use BEFORE `hwp_fill_cells` when the cell layout isn't known. Does NOT mutate the document.
 - `hwp_fill_cells` — table-cell counterpart of `hwp_fill_fields`. Fills cells by `'row,col'` coordinate OR by label (matched against `inferCellLabel`, case-insensitive + whitespace-normalized). Unresolvable keys land in `skipped[]` with a typed reason (`unknown_label` / `out_of_range` / `coord_format` / `no_table`); the rest of the map still processes — never abort-on-first-failure.

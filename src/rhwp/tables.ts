@@ -98,17 +98,29 @@ export async function getCellText(
   // getTextInCell's count=-1 (or a large number) reads the whole text.
   // We use a generous cap that should comfortably exceed any single-cell
   // contents in real forms (10 000 characters).
-  const raw = await wrapPanic("field", () =>
-    doc.getTextInCell(
-      table.section_idx,
-      table.parent_para_idx,
-      table.control_idx,
-      idx,
-      0,
-      0,
-      10000,
-    ),
-  );
+  //
+  // Real-world forms contain merged cells, hidden cells, and other shapes
+  // rhwp's getTextInCell may refuse with a per-cell panic. We translate
+  // those into an empty string so the locate_blanks walker can finish.
+  // The cell is reported as blank with current_text="" and the caller
+  // can still address it by coordinate; fill_cells will surface a real
+  // error if the actual write fails downstream.
+  let raw: string;
+  try {
+    raw = await wrapPanic("field", () =>
+      doc.getTextInCell(
+        table.section_idx,
+        table.parent_para_idx,
+        table.control_idx,
+        idx,
+        0,
+        0,
+        10000,
+      ),
+    );
+  } catch {
+    return "";
+  }
   if (!raw || raw.length === 0) return "";
   try {
     const parsed = JSON.parse(raw) as { text?: unknown };

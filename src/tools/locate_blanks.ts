@@ -9,6 +9,12 @@ import {
 } from "../rhwp/tables.js";
 import { sessionStore } from "../session/store.js";
 
+// Real-world Korean forms heavily use merged cells, which collapse multiple
+// logical (row, col) tuples into one canonical cell_idx. Iterating the full
+// row_count × col_count grid would over-shoot the table's real cell_count
+// and report ghost blanks. We bound the cell_idx the same way fill_cells
+// does (ADR-0004 §"Known limits" #2).
+
 export const HwpLocateBlanksInput = z
   .object({
     include_filled: z
@@ -87,6 +93,7 @@ export async function executeHwpLocateBlanks(input: {
   for (const table of tables) {
     for (let row = 0; row < table.row_count; row += 1) {
       for (let col = 0; col < table.col_count; col += 1) {
+        if (cellIndex(table, row, col) >= table.cell_count) continue;
         const text = await getCellText(doc, table, row, col);
         const isBlank = text.trim().length === 0;
         if (!includeFilled && !isBlank) continue;
