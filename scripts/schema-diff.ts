@@ -62,6 +62,18 @@ import {
   HwpListActionsInput,
   HwpListActionsOutput,
 } from "../src/tools/list_actions.js";
+import {
+  HwpOpenBlankInput,
+  HwpOpenBlankOutput,
+} from "../src/tools/open_blank.js";
+import {
+  HwpOpenBase64Input,
+  HwpOpenBase64Output,
+} from "../src/tools/open_base64.js";
+import {
+  HwpSaveAsBase64Input,
+  HwpSaveAsBase64Output,
+} from "../src/tools/save_as_base64.js";
 
 interface SnapshotShape {
   version: string;
@@ -112,6 +124,18 @@ function liveSchemas(): Record<string, unknown> {
     hwp_list_actions: {
       input: zodToJsonSchema(HwpListActionsInput, { target: "jsonSchema7" }),
       output: zodToJsonSchema(HwpListActionsOutput, { target: "jsonSchema7" }),
+    },
+    hwp_open_blank: {
+      input: zodToJsonSchema(HwpOpenBlankInput, { target: "jsonSchema7" }),
+      output: zodToJsonSchema(HwpOpenBlankOutput, { target: "jsonSchema7" }),
+    },
+    hwp_open_base64: {
+      input: zodToJsonSchema(HwpOpenBase64Input, { target: "jsonSchema7" }),
+      output: zodToJsonSchema(HwpOpenBase64Output, { target: "jsonSchema7" }),
+    },
+    hwp_save_as_base64: {
+      input: zodToJsonSchema(HwpSaveAsBase64Input, { target: "jsonSchema7" }),
+      output: zodToJsonSchema(HwpSaveAsBase64Output, { target: "jsonSchema7" }),
     },
   };
 }

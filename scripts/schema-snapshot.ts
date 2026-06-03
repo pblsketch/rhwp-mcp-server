@@ -59,6 +59,18 @@ import {
   HwpListActionsInput,
   HwpListActionsOutput,
 } from "../src/tools/list_actions.js";
+import {
+  HwpOpenBlankInput,
+  HwpOpenBlankOutput,
+} from "../src/tools/open_blank.js";
+import {
+  HwpOpenBase64Input,
+  HwpOpenBase64Output,
+} from "../src/tools/open_base64.js";
+import {
+  HwpSaveAsBase64Input,
+  HwpSaveAsBase64Output,
+} from "../src/tools/save_as_base64.js";
 
 const SNAPSHOT_PATH = resolve(process.cwd(), "schemas", "snapshot.json");
 const PKG_JSON_PATH = resolve(process.cwd(), "package.json");
@@ -118,6 +130,18 @@ const tools = {
     input: zodToJsonSchema(HwpListActionsInput, { target: "jsonSchema7" }),
     output: zodToJsonSchema(HwpListActionsOutput, { target: "jsonSchema7" }),
   },
+  hwp_open_blank: {
+    input: zodToJsonSchema(HwpOpenBlankInput, { target: "jsonSchema7" }),
+    output: zodToJsonSchema(HwpOpenBlankOutput, { target: "jsonSchema7" }),
+  },
+  hwp_open_base64: {
+    input: zodToJsonSchema(HwpOpenBase64Input, { target: "jsonSchema7" }),
+    output: zodToJsonSchema(HwpOpenBase64Output, { target: "jsonSchema7" }),
+  },
+  hwp_save_as_base64: {
+    input: zodToJsonSchema(HwpSaveAsBase64Input, { target: "jsonSchema7" }),
+    output: zodToJsonSchema(HwpSaveAsBase64Output, { target: "jsonSchema7" }),
+  },
 };
 
 async function main(): Promise<void> {
@@ -130,7 +154,7 @@ async function main(): Promise<void> {
     version,
     generated_by: "scripts/schema-snapshot.ts",
     generated_at: new Date().toISOString(),
-    tool_count_expected: 10,
+    tool_count_expected: 13,
     tools,
   };
   await writeFile(SNAPSHOT_PATH, JSON.stringify(snapshot, null, 2) + "\n", "utf8");

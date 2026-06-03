@@ -8,6 +8,16 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Added — Sprint 2.5 (Remote-friendly tools)
+- `hwp_open_blank` — bootstrap a blank document into the SessionStore with no filesystem path. Internally calls `HwpDocument.createEmpty()` + `createBlankDocument()` (same path Sprint 1.5's gate exercises). Returns `{ ok, format: 'hwpx', page_count }`.
+- `hwp_open_base64` — load a document from a base64-encoded byte string. Input `{ bytes_base64, format? }`, output `{ ok, format, page_count, bytes_in }`. Auto-detects format via `getSourceFormat()` when the hint is omitted. Strict base64 validation throws `parse/BAD_BASE64` on garbage characters and on zero-byte decodes (e.g. padding-only input).
+- `hwp_save_as_base64` — serialize the currently-open document and return the bytes as a base64 string. Input `{ format: 'hwp' | 'hwpx' }` (explicit, no default), output `{ ok, format, bytes_base64, bytes_written }`. `bytes_written` is the BINARY count (before base64 encoding) for client-side size checks.
+- Tool count grows from 10 → 13. `schemas/snapshot.json` gains 3 entries; the 10 v0.1 shapes stay untouched (per plan §3 spec lock — additions are allowed, modifications are not until private-beta sign-off).
+- `src/server.ts` ready message now reads `13 tools + hwp_ping`.
+- New ADR: `docs/decisions/0003-base64-tools.md` (Accepted). Documents why we add the base64 contract WITHOUT deprecating the path tools — base64 is for clients where the MCP host and the client do not share a filesystem (Claude Web/Mobile, MCP-over-HTTP brokers, sandboxed agents). For local clients the path tools remain preferred (no ~33% wire overhead, no document bytes in LLM context).
+- vitest smoke tests: `tests/smoke/{open_blank,open_base64,save_as_base64}.test.ts`. The `open_base64` suite covers the round-trip happy path (open_blank → save_as_base64 → open_base64 → identical page count + byte length), automatic format detection when the hint is omitted, and the `BAD_BASE64` / `EMPTY_INPUT` negative paths.
+- Triggering scenario: user reported that Claude Web could not reach the Windows host's filesystem while attempting to author a school 가정통신문. The new tools unblock that environment end-to-end.
+
 ### Added — Sprint 1.5 (Binary-Identity Save Gate)
 - `scripts/corpus-runner.ts` — Pass B runner. Walks `corpus/synthetic/`, `corpus/forms/`, `corpus/private/`, opens each `.hwp` via `new HwpDocument(bytes)`, calls `exportHwpVerify()` to inspect `{bytesLen, pageCountBefore, pageCountAfter, recovered}`, round-trips through `exportHwp()` + re-open + second `exportHwpVerify`, and emits a per-case PASS/FAIL record. Computes pass rate + Wilson 95% CI + bonus `strictByteEqual` and `whitelistMatched` signals. Exits 0 on pass / 2 on fail / 0 on empty corpus (with NOTE).
 - `scripts/generate-synthetic-corpus.ts` — deterministic generator for 5 synthetic cases (`blank`, `text-only`, `table-only`, `paragraph-style`, `mixed`) so the gate runs from a fresh clone without any external corpus dependency. Wired as `npm run corpus:generate`.

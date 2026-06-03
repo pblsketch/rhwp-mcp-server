@@ -4,9 +4,10 @@
  *
  * Wires:
  *   1. WASM warm-on-start (warmRhwp before server.connect)
- *   2. 10 tool registrations (8 hot-path + apply_action + list_actions)
+ *   2. 13 tool registrations (10 v0.1 + 3 Sprint 2.5 remote-friendly)
  *   3. Stdio transport for local MCP clients (Claude Desktop, Cursor,
- *      Claude Code)
+ *      Claude Code) — base64 tools also serve remote clients (Claude
+ *      Web/Mobile, MCP-over-HTTP brokers).
  *
  * Run:
  *   node dist/server.js
@@ -33,6 +34,9 @@ import { registerHwpSetParagraphStyle } from "./tools/set_paragraph_style.js";
 import { registerHwpPreview } from "./tools/preview.js";
 import { registerHwpApplyAction } from "./tools/apply_action.js";
 import { registerHwpListActions } from "./tools/list_actions.js";
+import { registerHwpOpenBlank } from "./tools/open_blank.js";
+import { registerHwpOpenBase64 } from "./tools/open_base64.js";
+import { registerHwpSaveAsBase64 } from "./tools/save_as_base64.js";
 
 const PKG_NAME = "rhwp-mcp-server";
 const PKG_VERSION = "0.1.0-alpha.0";
@@ -63,7 +67,7 @@ async function main(): Promise<void> {
     }),
   );
 
-  // Register the 10 spec-locked tools.
+  // v0.1 spec-locked tools (10).
   registerHwpOpen(server);
   registerHwpSaveAs(server);
   registerHwpListFields(server);
@@ -75,6 +79,13 @@ async function main(): Promise<void> {
   registerHwpApplyAction(server);
   registerHwpListActions(server);
 
+  // Sprint 2.5 remote-friendly additions (ADR-0003). Path tools above are
+  // unchanged; base64 tools share the SessionStore so the two contracts
+  // interoperate freely.
+  registerHwpOpenBlank(server);
+  registerHwpOpenBase64(server);
+  registerHwpSaveAsBase64(server);
+
   // Step 3: connect stdio transport. MCP clients spawn this process; framing
   // is JSON-RPC on stdin/stdout. Anything written to stdout outside the
   // framing will corrupt the connection — keep logs on stderr.
@@ -82,7 +93,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   process.stderr.write(
-    `${PKG_NAME} v${PKG_VERSION} ready on stdio (10 tools + hwp_ping)\n`,
+    `${PKG_NAME} v${PKG_VERSION} ready on stdio (13 tools + hwp_ping)\n`,
   );
 }
 
