@@ -8,6 +8,19 @@ The schema-diff CI guard expects an entry in the **Unreleased** section whenever
 
 ## [Unreleased]
 
+### Added — Sprint 3.5 (private-beta release prep)
+- **Version bump** — `0.1.0-alpha.0` → `0.1.0-beta.1`. Updated in `package.json` and `src/server.ts` (`PKG_VERSION`). The next `npm publish --tag beta` (run by the maintainer with their own credentials) will release the v0.1 surface as a private beta.
+- README.md — full rewrite reflecting the v0.1.0-beta.1 state: 15 tools across Form filling (5), Authoring (4), Document I/O (5), Hardened I/O (1), Catalog (2). Drops Sprint 0 stub language ("NOT_IMPLEMENTED", "10 tools") and `hwp_preview` references. Adds typed-error envelope examples, the 6-ADR table, and three persona-example entry points.
+- `docs/setup/claude-desktop.md` — config path per OS, npx vs global install, verify-with-`hwp_ping`, logs location, troubleshooting (tool not available / WASM warm timeout / mojibake / Node-too-old).
+- `docs/setup/cursor.md` — MCP panel + JSON path, Composer verification, project cwd note, logs, troubleshooting.
+- `docs/setup/claude-code.md` — settings.json registration, `/mcp` inspection, `--allowed-tools` headless mode, project `CLAUDE.md` template hint, allowlist troubleshooting.
+- `docs/persona-examples/form-automation.md` — end-to-end 35-cell 이력서 fill on the real school form that drove Sprint 2.6 / 2.6.1 (no 누름틀 → `hwp_locate_blanks` + `hwp_fill_cells`, merged cells, label-vs-coordinate fallback). Decision tree for field vs cell families. Documented limits.
+- `docs/persona-examples/authoring.md` — 가정통신문 from blank: title with Sprint 2.7 char-format chain (`hwp_insert_text` + `style: {font_size, bold, color}`), body via `hwp_apply_action(insertText/applyCharFormat)` for non-(0,0,0), schedule table, signature. ADR-0005 cross-link.
+- `docs/persona-examples/compat.md` — base64 wire transit (validated variant default, `expected_bytes` + `expected_crc32`), HWP ↔ HWPX conversion, binary-identity audit via the gate, typed-error reference table. ADR-0002 / 0003 / 0006 cross-links.
+- `docs/release/private-beta-program.md` — program shape, eligibility, feedback form template (markdown), maintainer / tester commitments, confidentiality, publish commands. Three "Outstanding maintainer choices" stubs flagged: feedback channel, recruitment outreach, public-release criteria.
+
+Sprint 3.5 ships docs + version bump. **npm publish itself is deferred to the maintainer's own run** because the credentials live with them. The publish command sequence is documented in `docs/release/private-beta-program.md` §"Publishing the beta".
+
 ### Added — Sprint 3 (Pass A round-trip + Decision Gate 3.0 structure)
 - `scripts/corpus-runner.ts` — adds **Pass A (field round-trip)** as a peer of the existing Pass B (binary identity). For each corpus file: open → `getFieldList` → fill every field with a deterministic synthetic value (`value-N` by index) → `exportHwp`/`exportHwpx` (preserves source format) → reopen → re-fetch field list → verify field-name set + per-field value round-trip. Documents with zero form fields skip Pass A with reason `no fields` (counted as `skip`, not `fail`).
 - `scripts/corpus-runner.ts` — combined per-case verdict: PASS when at least one pass passes and neither fails; FAIL when either pass fails; SKIP when both passes skip. Combined-fail surfaces the offending pass's `failReason` verbatim.

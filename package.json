@@ -1,6 +1,6 @@
 {
   "name": "rhwp-mcp-server",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-beta.1",
   "description": "MCP server for Korean HWP/HWPX documents — read, fill form fields, author new docs, preview — powered by @rhwp/core (Rust + WebAssembly).",
   "type": "module",
   "license": "MIT",

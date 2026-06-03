@@ -43,7 +43,7 @@ import { registerHwpFillCells } from "./tools/fill_cells.js";
 import { registerHwpOpenBase64Validated } from "./tools/open_base64_validated.js";
 
 const PKG_NAME = "rhwp-mcp-server";
-const PKG_VERSION = "0.1.0-alpha.0";
+const PKG_VERSION = "0.1.0-beta.1";
 
 async function main(): Promise<void> {
   // Step 1: warm WASM. We do this before server.connect() so the first tool
