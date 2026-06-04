@@ -15,9 +15,9 @@ import { writeFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { warmRhwp } from "../../src/rhwp/loader.js";
+import { ensureEngine } from "../../src/rhwp/loader.js";
 import { sessionStore } from "../../src/session/store.js";
-import type { HwpDocumentLike, RhwpModuleLike } from "../../src/rhwp/types.js";
+import type { HwpDocumentLike } from "../../src/rhwp/types.js";
 
 let cachedPath: string | null = null;
 
@@ -31,8 +31,8 @@ export async function makeBlankHwpxFixture(): Promise<string> {
     }
   }
 
-  const mod = (await warmRhwp()) as RhwpModuleLike;
-  const doc = mod.HwpDocument.createEmpty();
+  const engine = await ensureEngine();
+  const doc = await engine.createBlank();
   let bytes: Uint8Array;
   try {
     bytes = doc.exportHwpx();
@@ -66,8 +66,8 @@ export async function makeBlankHwpxFixture(): Promise<string> {
  * on any coordinate-based action.
  */
 export async function openBlankAuthoringDocument(): Promise<HwpDocumentLike> {
-  const mod = (await warmRhwp()) as RhwpModuleLike;
-  const doc = mod.HwpDocument.createEmpty();
+  const engine = await ensureEngine();
+  const doc = await engine.createBlank();
   (doc as unknown as { createBlankDocument(): string }).createBlankDocument();
   sessionStore.clear();
   sessionStore.set(doc, {

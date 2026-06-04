@@ -1,9 +1,8 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { getRhwp, warmRhwp } from "../rhwp/loader.js";
+import { ensureEngine } from "../rhwp/loader.js";
 import { wrapPanic } from "../rhwp/errors.js";
-import type { RhwpModuleLike } from "../rhwp/types.js";
 import { sessionStore } from "../session/store.js";
 
 export const HwpOpenBlankInput = z.object({}).strict();
@@ -33,13 +32,12 @@ export interface HwpOpenBlankResult {
 }
 
 export async function executeHwpOpenBlank(): Promise<HwpOpenBlankResult> {
-  // The catalog scenarios already call warmRhwp at server startup, but this
+  // The catalog scenarios already warm the engine at server startup, but this
   // handler can be invoked from tests without going through the server, so
-  // re-warming defensively is cheap (the loader is idempotent).
-  await warmRhwp();
-  const rhwp = getRhwp() as RhwpModuleLike;
+  // ensuring the engine defensively is cheap (warming is idempotent).
+  const engine = await ensureEngine();
 
-  const doc = await wrapPanic("parse", () => rhwp.HwpDocument.createEmpty());
+  const doc = await wrapPanic("parse", () => engine.createBlank());
   await wrapPanic("parse", () =>
     (doc as unknown as { createBlankDocument(): string }).createBlankDocument(),
   );

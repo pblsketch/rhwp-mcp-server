@@ -42,8 +42,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { warmRhwp } from "../src/rhwp/loader.js";
-import type { HwpDocumentLike, RhwpFieldEntry, RhwpModuleLike } from "../src/rhwp/types.js";
+import { ensureEngine, warmRhwp } from "../src/rhwp/loader.js";
+import type {
+  DocumentEngine,
+  HwpDocumentLike,
+  RhwpFieldEntry,
+  RhwpModuleLike,
+} from "../src/rhwp/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -178,11 +183,11 @@ function detectFormat(inputBytes: Uint8Array, fileExt: string): SourceFormat {
  * Pass A is a measurement of round-trip integrity, not a requirement that
  * every document must carry fields.
  */
-export function runPassA(
-  mod: RhwpModuleLike,
+export async function runPassA(
+  engine: DocumentEngine,
   inputBytes: Uint8Array,
   sourceFormat: SourceFormat,
-): PassAResult {
+): Promise<PassAResult> {
   const result: PassAResult = {
     status: "fail",
     fieldCount: 0,
@@ -193,7 +198,7 @@ export function runPassA(
 
   let doc: HwpDocumentLike;
   try {
-    doc = new mod.HwpDocument(inputBytes);
+    doc = await engine.openFromBytes(inputBytes, sourceFormat);
   } catch (e) {
     result.failReason = `Pass A: open failed: ${String(e)}`;
     return result;
@@ -253,7 +258,7 @@ export function runPassA(
 
   let doc2: HwpDocumentLike;
   try {
-    doc2 = new mod.HwpDocument(reExport);
+    doc2 = await engine.openFromBytes(reExport, sourceFormat);
   } catch (e) {
     result.failReason = `Pass A: re-open failed: ${String(e)}`;
     return result;
@@ -331,11 +336,11 @@ export function runPassA(
  * .hwpx sources skip with reason — the gate's contract is HWP-5.0-specific
  * (ADR-0002).
  */
-export function runPassB(
-  mod: RhwpModuleLike,
+export async function runPassB(
+  engine: DocumentEngine,
   inputBytes: Uint8Array,
   sourceFormat: SourceFormat,
-): PassBResult {
+): Promise<PassBResult> {
   const result: PassBResult = {
     status: "fail",
     initialBytesLen: inputBytes.length,
@@ -349,7 +354,7 @@ export function runPassB(
 
   let doc: HwpDocumentLike;
   try {
-    doc = new mod.HwpDocument(inputBytes);
+    doc = await engine.openFromBytes(inputBytes, sourceFormat);
   } catch (e) {
     result.failReason = `Pass B: open failed: ${String(e)}`;
     return result;
@@ -394,7 +399,7 @@ export function runPassB(
   // deferred to v0.2 (tracked in ADR-0002 step 4).
   let doc2: HwpDocumentLike;
   try {
-    doc2 = new mod.HwpDocument(reExport);
+    doc2 = await engine.openFromBytes(reExport, sourceFormat);
   } catch (e) {
     result.failReason = `Pass B: re-open of our export failed: ${String(e)}`;
     return result;
@@ -454,16 +459,16 @@ export function combine(passA: PassAResult, passB: PassBResult): {
   };
 }
 
-function runCase(
-  mod: RhwpModuleLike,
+async function runCase(
+  engine: DocumentEngine,
   caseId: string,
   source: SourceBucket,
   filePath: string,
-): CaseResult {
+): Promise<CaseResult> {
   const inputBytes = readFileSync(filePath);
   const sourceFormat = detectFormat(inputBytes, extname(filePath).toLowerCase());
-  const passA = runPassA(mod, inputBytes, sourceFormat);
-  const passB = runPassB(mod, inputBytes, sourceFormat);
+  const passA = await runPassA(engine, inputBytes, sourceFormat);
+  const passB = await runPassB(engine, inputBytes, sourceFormat);
   const { status, combinedReason } = combine(passA, passB);
   return {
     caseId,
@@ -525,6 +530,7 @@ export function selectThreshold(rated: number): {
 async function main(): Promise<void> {
   const startedAt = new Date().toISOString();
   const mod = (await warmRhwp()) as RhwpModuleLike;
+  const engine = await ensureEngine();
 
   const sources: Array<{ source: SourceBucket; dir: string }> = [
     { source: "synthetic", dir: join(corpusRoot, "synthetic") },
@@ -545,7 +551,7 @@ async function main(): Promise<void> {
       const caseId = `${source}/${basename(filePath, extname(filePath))}`;
       let r: CaseResult;
       try {
-        r = runCase(mod, caseId, source, filePath);
+        r = await runCase(engine, caseId, source, filePath);
       } catch (e) {
         r = {
           caseId,

@@ -16,7 +16,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { warmRhwp } from "../src/rhwp/loader.js";
+import { ensureEngine, warmRhwp } from "../src/rhwp/loader.js";
 import type { RhwpModuleLike } from "../src/rhwp/types.js";
 
 const REPORT_PATH = resolve(
@@ -36,7 +36,8 @@ interface ProbeAttempt {
 
 async function probe(): Promise<void> {
   const mod = (await warmRhwp()) as RhwpModuleLike;
-  const doc = mod.HwpDocument.createEmpty();
+  const engine = await ensureEngine();
+  const doc = await engine.createBlank();
   (doc as unknown as { createBlankDocument(): string }).createBlankDocument();
 
   // Insert a known short string so we can target a non-empty range.

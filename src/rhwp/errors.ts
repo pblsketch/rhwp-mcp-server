@@ -137,3 +137,28 @@ export async function wrapPanic<T>(
 // call we actually make is async, and `wrapPanic` accepts both sync and async
 // callbacks via `T | Promise<T>` + `await fn()`. Reintroduce only if a real
 // pure-sync rhwp call appears.
+
+/**
+ * Build a typed error for an engine whose document operations cannot run in
+ * the current environment.
+ *
+ * Engines that depend on a host office runtime (rather than the bundled WASM)
+ * only operate when that runtime is installed, registered, and a supported
+ * version. When those preconditions are not met, the engine's document methods
+ * must fail with a clear, classified error rather than an opaque throw — so
+ * callers can distinguish "environment not ready" from a genuine document
+ * fault and choose a fallback engine.
+ *
+ * @param engineName Engine that could not service the request (e.g. "com").
+ * @param detail     Probe-derived reason the engine is unavailable, surfaced
+ *                   verbatim so the caller knows what to remediate.
+ */
+export function engineUnavailable(engineName: string, detail: string): RhwpError {
+  return new RhwpError({
+    category: "other",
+    code: "ENGINE_UNAVAILABLE",
+    message:
+      `Engine '${engineName}' is unavailable in this environment: ${detail}. ` +
+      "Use the 'wasm' engine or query hwp_engine_status for capability detail.",
+  });
+}
