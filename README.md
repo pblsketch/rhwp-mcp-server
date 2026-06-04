@@ -141,6 +141,7 @@ Full per-client setup, troubleshooting, and verification:
 - [`docs/setup/cursor.md`](./docs/setup/cursor.md)
 - [`docs/setup/codex-cli.md`](./docs/setup/codex-cli.md)
 - [`docs/setup/antigravity-cli.md`](./docs/setup/antigravity-cli.md)
+- [`docs/setup/com-engine.md`](./docs/setup/com-engine.md) — 옵트인 호스트 런타임(자동화) 엔진 (한글 설치 + `pip install pyhwpx` + `RHWP_COM=1`, 대화형 데스크톱 전용)
 
 ## 설정이 끝나면 — 이렇게 말해보세요
 
@@ -297,6 +298,7 @@ Feedback program details:
 | [0005](./docs/decisions/0005-char-format-contract.md) | `hwp_insert_text` style → applyCharFormat chain (Sprint 2.7) | Accepted |
 | [0006](./docs/decisions/0006-decision-gate-3.md) | Decision Gate 3.0 structure (Pass A + Pass B combined, threshold escalation) | Accepted (structure); verdict pending N=30 corpus |
 | [0007](./docs/decisions/0007-engine-abstraction.md) | Engine-neutral `DocumentEngine` abstraction (WASM default, automation engine as capability-gated slot) | Accepted |
+| [0008](./docs/decisions/0008-automation-engine-approach.md) | Automation engine via a Python helper (interactive-desktop target, opt-in security module) | Accepted |
 
 ## License
 

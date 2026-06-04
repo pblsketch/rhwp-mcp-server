@@ -22,6 +22,7 @@
   "files": [
     "dist",
     "schemas",
+    "python",
     "LICENSE",
     "NOTICE",
     "README.md",
@@ -42,6 +43,7 @@
     "corpus:generate": "tsx scripts/generate-synthetic-corpus.ts",
     "measure:label-coverage": "tsx scripts/measure-label-coverage.ts",
     "gate:binary-identity": "tsx scripts/corpus-runner.ts",
+    "spike:com": "tsx scripts/spike-com.ts",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\""
   },
   "keywords": [
