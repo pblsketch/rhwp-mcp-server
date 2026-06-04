@@ -64,4 +64,47 @@ describe("hwp_locate_blanks smoke", () => {
     expect(cell01).toBeDefined();
     expect(cell01?.suggested_label).toBe("이름");
   });
+
+  it("attaches classification + label_source to each blank (additive)", async () => {
+    await executeHwpCreateTable({
+      rows: 2,
+      cols: 2,
+      data: [
+        ["이름", ""],
+        ["", ""],
+      ],
+    });
+
+    const result = await executeHwpLocateBlanks({});
+    const cell01 = result.blanks.find((b) => b.row === 0 && b.col === 1);
+    expect(cell01?.classification).toBe("fillable");
+    expect(cell01?.label_source).toBe("left");
+
+    // The isolated bottom-right blank (1,1) has no immediate label → structural.
+    const cell11 = result.blanks.find((b) => b.row === 1 && b.col === 1);
+    expect(cell11?.classification).toBe("structural");
+    expect(cell11?.label_source).toBe("none");
+  });
+
+  it("only_fillable:true returns just the fillable cells", async () => {
+    await executeHwpCreateTable({
+      rows: 2,
+      cols: 2,
+      data: [
+        ["이름", ""],
+        ["전화", ""],
+      ],
+    });
+
+    const all = await executeHwpLocateBlanks({});
+    const fillableOnly = await executeHwpLocateBlanks({ only_fillable: true });
+
+    // Two label|value pairs → two fillable blanks.
+    expect(fillableOnly.total).toBe(2);
+    for (const b of fillableOnly.blanks) {
+      expect(b.classification).toBe("fillable");
+    }
+    // The default (only_fillable:false) returns at least as many.
+    expect(all.total).toBeGreaterThanOrEqual(fillableOnly.total);
+  });
 });

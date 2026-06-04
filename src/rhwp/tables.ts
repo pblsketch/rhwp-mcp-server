@@ -219,14 +219,196 @@ export async function inferCellLabel(
 }
 
 /**
+ * Where an inferred label came from, in `inferCellLabel`'s priority order.
+ *
+ * This MIRRORS the five-step heuristic inside `inferCellLabel` (which is
+ * frozen byte-for-byte by the golden snapshot and must NOT change). It is a
+ * separate, side-channel signal so `classifyCell` and `locate_blanks` can
+ * weigh *how strong* the label evidence is:
+ *
+ *   - `left`     — immediate left neighbor (row, col-1). Strong evidence:
+ *                  the canonical 라벨→빈칸 pair in Korean forms.
+ *   - `upper`    — immediate upper neighbor (row-1, col). Strong evidence:
+ *                  stacked 라벨 above 빈칸.
+ *   - `header`   — header row 0 (row 0, same col), reached only when the
+ *                  immediate left was empty. Weaker: row 0 may be far above.
+ *   - `multirow` — joined multi-row header walk. Weakest / most speculative:
+ *                  a distant stacked header several rows up.
+ *   - `none`     — no label could be inferred.
+ */
+export type LabelSource = "left" | "header" | "upper" | "multirow" | "none";
+
+/**
+ * Side-channel mirror of `inferCellLabel` that ALSO reports which heuristic
+ * produced the label. The label *value* returned here is identical to
+ * `inferCellLabel` for every cell (same probe order, same early returns) —
+ * this function exists only to expose the provenance without touching the
+ * frozen `inferCellLabel`.
+ *
+ * IMPORTANT: keep the probe order and the early-return semantics in lockstep
+ * with `inferCellLabel`. The golden snapshot pins `inferCellLabel`; a unit
+ * test pins the `label` half of this function equal to `inferCellLabel`.
+ */
+export async function inferCellLabelWithSource(
+  doc: HwpDocumentLike,
+  table: TableHandle,
+  row: number,
+  col: number,
+): Promise<{ label: string | null; source: LabelSource }> {
+  if (col > 0) {
+    const left = (await getCellText(doc, table, row, col - 1)).trim();
+    if (left.length > 0) return { label: collapseWhitespace(left), source: "left" };
+  }
+  if (row > 0) {
+    const header = (await getCellText(doc, table, 0, col)).trim();
+    if (header.length > 0)
+      return { label: collapseWhitespace(header), source: "header" };
+  }
+
+  if (row > 1) {
+    const upper = (await getCellText(doc, table, row - 1, col)).trim();
+    if (upper.length > 0)
+      return { label: collapseWhitespace(upper), source: "upper" };
+  }
+
+  if (row > 1) {
+    const parts: string[] = [];
+    for (let r = 0; r < row; r += 1) {
+      const part = (await getCellText(doc, table, r, col)).trim();
+      if (part.length === 0) continue;
+      const norm = collapseWhitespace(part);
+      if (parts.length === 0 || parts[parts.length - 1] !== norm) {
+        parts.push(norm);
+      }
+    }
+    if (parts.length > 0) return { label: parts.join(" "), source: "multirow" };
+  }
+
+  return { label: null, source: "none" };
+}
+
+/**
+ * Maximum collapsed length for a neighbor to read as a *label* rather than
+ * *content*. Korean form labels are short ("이름", "주민등록번호",
+ * "비상연락처(휴대폰)"); a long run of text in the neighbor cell is almost
+ * always prose/content, which means the blank beside it is structural
+ * spacing inside a content block, not a labelled input slot.
+ *
+ * 25 is a heuristic chosen to comfortably admit real labels (the longest
+ * common Korean form labels sit well under 20 collapsed chars) while
+ * rejecting sentence/paragraph neighbors. It is intentionally lenient — the
+ * goal is to drop obvious prose, not to second-guess borderline labels.
+ */
+export const LABEL_LIKE_MAX_LEN = 25;
+
+/**
+ * Phrases that are short enough to pass the length test but are NOT field
+ * labels, so a blank beside them is not an input slot.
+ *
+ * - Addressee / closing lines end a document; the blank beside
+ *   "○○○ 귀하" / "○○○ 귀중" is a recipient line, not a value field.
+ * - A bare document-title word ("…신청서", "…동의서") sits in the title band;
+ *   the blank beside it is title spacing, not an input.
+ *
+ * Matched only as a SUFFIX of the whole collapsed text so genuine labels that
+ * merely contain the word ("신청서 번호", "동의 여부") are not rejected.
+ */
+const NON_LABEL_SUFFIXES = [
+  "귀하",
+  "귀중",
+  "님께",
+  "드림",
+  "올림",
+  "신청서",
+  "동의서",
+  "보고서",
+  "계획서",
+  "확인서",
+  "증명서",
+  "통지서",
+  "안내문",
+  "서약서",
+];
+
+/**
+ * Is `text` short enough (after whitespace collapse) to read as a label and
+ * not a content paragraph, AND not an obvious non-label phrase (addressee or
+ * document title)? Empty text is not label-like.
+ */
+export function isLabelLike(text: string): boolean {
+  const t = collapseWhitespace(text).trim();
+  if (t.length === 0) return false;
+  if (t.length > LABEL_LIKE_MAX_LEN) return false;
+  if (NON_LABEL_SUFFIXES.some((suffix) => t.endsWith(suffix))) return false;
+  return true;
+}
+
+/**
+ * Does the cell at (row, col) have an IMMEDIATE label-like neighbor — i.e. a
+ * non-empty, label-like cell directly to its left (col-1) or directly above
+ * it (row-1)? This is the strong-evidence signal for a real input slot: a
+ * blank that sits right next to a short label is the value half of a
+ * 라벨→빈칸 pair. Distant headers do NOT count here.
+ */
+export async function hasImmediateLabel(
+  doc: HwpDocumentLike,
+  table: TableHandle,
+  row: number,
+  col: number,
+): Promise<boolean> {
+  if (col > 0) {
+    const left = await getCellText(doc, table, row, col - 1);
+    if (left.trim().length > 0 && isLabelLike(left)) return true;
+  }
+  if (row > 0) {
+    const upper = await getCellText(doc, table, row - 1, col);
+    if (upper.trim().length > 0 && isLabelLike(upper)) return true;
+  }
+  return false;
+}
+
+/**
+ * Is the blank at (row, col) isolated — every in-range immediate neighbor
+ * (left, right, up, down) empty? An isolated blank is a spacer cell in a
+ * whitespace/decorative grid, never an input slot. Out-of-range directions
+ * (table edges) are skipped; a cell only needs ONE non-empty immediate
+ * neighbor to be considered non-isolated.
+ */
+export async function isIsolatedBlank(
+  doc: HwpDocumentLike,
+  table: TableHandle,
+  row: number,
+  col: number,
+): Promise<boolean> {
+  const neighbors: Array<[number, number]> = [
+    [row, col - 1],
+    [row, col + 1],
+    [row - 1, col],
+    [row + 1, col],
+  ];
+  for (const [r, c] of neighbors) {
+    if (r < 0 || c < 0) continue;
+    if (r >= table.row_count || c >= table.col_count) continue;
+    if (cellIndex(table, r, c) >= table.cell_count) continue;
+    const text = await getCellText(doc, table, r, c);
+    if (text.trim().length > 0) return false;
+  }
+  return true;
+}
+
+/**
  * Classification of a table cell for form-filling purposes.
  *
- * - `fillable`   — an empty cell that has an inferred label, i.e. a blank
- *                  the user is expected to fill in.
- * - `structural` — a cell that is part of the form's scaffolding rather
- *                  than an input target: a label/header cell (it carries
- *                  text that serves as a label for a neighbor), or an
- *                  empty cell with no inferable label (decorative/spacer).
+ * - `fillable`   — an empty cell with STRONG evidence that a human fills it:
+ *                  it sits beside an immediate, label-like neighbor (the
+ *                  value half of a 라벨→빈칸 pair). These are the cells an
+ *                  AI should actually write into.
+ * - `structural` — everything else: a cell that carries text (label / header
+ *                  / pre-filled), an isolated spacer blank, or a blank whose
+ *                  only label evidence is a weak/distant fallback (header row
+ *                  far above, multi-row stacked header). Treating these as
+ *                  fill targets is the over-detection failure mode this
+ *                  precision pass removes.
  */
 export type CellClassification = "fillable" | "structural";
 
@@ -234,23 +416,25 @@ export type CellClassification = "fillable" | "structural";
  * Classify a single cell as `fillable` (a labelled blank awaiting input)
  * or `structural` (label/header/decorative scaffolding).
  *
- * Pure heuristic over the read-only cell helpers — never mutates the doc.
- * The decision uses three observations:
- *   - whether the cell itself holds text (`selfText`),
- *   - whether a label can be inferred for it (`label`),
- *   - whether the cell acts as a label for a downstream neighbor
- *     (its right or lower neighbor is empty), which marks it as the
- *     scaffolding side of a 라벨→빈칸 pair.
+ * Precision-first: a blank is `fillable` only with STRONG evidence — never
+ * merely because *some* label could be inferred (the old rule, which fired
+ * on almost every blank because `inferCellLabel` nearly always returns
+ * something via its distant fallbacks).
  *
- * Rules:
- *   1. Non-empty cell → `structural`. A cell that already carries text is
- *      either a label, a header, or pre-filled content; none of these is a
- *      blank the user fills, so it is scaffolding for classification.
- *   2. Empty cell with an inferred label → `fillable`. This is the target
- *      blank (the right/lower side of a 라벨→빈칸 pair, or a column under a
- *      header).
- *   3. Empty cell with no inferable label → `structural`. A spacer or
- *      decorative empty cell with nothing identifying it as an input.
+ * Pure heuristic over the read-only cell helpers — never mutates the doc.
+ *
+ * Rules (evaluated in order):
+ *   1. Self carries text → `structural` (label / header / pre-filled). [kept]
+ *   2. Isolated blank (every immediate neighbor empty) → `structural`
+ *      (decorative spacer grid).
+ *   3. Immediate label-like neighbor (short, non-empty cell to the left or
+ *      directly above) → `fillable`. This is the strong 라벨→빈칸 signal and
+ *      is the ONLY positive path, so the obvious label|value case is always
+ *      retained.
+ *   4. Otherwise → `structural`. This covers blanks whose only "label" comes
+ *      from a weak/distant fallback (header row far above, multi-row header)
+ *      or from a long-text (content, not label) neighbor — weak evidence,
+ *      excluded to keep precision high.
  */
 export async function classifyCell(
   doc: HwpDocumentLike,
@@ -260,9 +444,20 @@ export async function classifyCell(
 ): Promise<CellClassification> {
   const selfText = (await getCellText(doc, table, row, col)).trim();
   if (selfText.length > 0) {
-    // Carries text → it is a label / header / pre-filled content cell.
+    // Rule 1: carries text → label / header / pre-filled content cell.
     return "structural";
   }
-  const label = await inferCellLabel(doc, table, row, col);
-  return label !== null ? "fillable" : "structural";
+
+  // Rule 2: isolated blank → decorative/spacer grid.
+  if (await isIsolatedBlank(doc, table, row, col)) {
+    return "structural";
+  }
+
+  // Rule 3: strong immediate label-like neighbor → real input slot.
+  if (await hasImmediateLabel(doc, table, row, col)) {
+    return "fillable";
+  }
+
+  // Rule 4: weak/distant or non-label evidence only → structural.
+  return "structural";
 }
