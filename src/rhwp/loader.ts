@@ -33,6 +33,7 @@ import { ComDocumentEngine } from "./engine/com-engine.js";
 import {
   COM_ENGINE_NAME,
   WASM_ENGINE_NAME,
+  isComOptedIn,
   probeComRuntime,
 } from "./engine/capabilities.js";
 
@@ -198,31 +199,50 @@ class EngineRegistry {
 const engineRegistry = new EngineRegistry();
 
 /**
- * Construct (but do not warm) the engine instance for a concrete name.
+ * Process-wide host-runtime engine instance. A singleton so the async `ping`
+ * handshake it performs (which flips `operational`) is cached across selection
+ * queries: `ensureEngine` runs the handshake once, then synchronous selection
+ * (`resolveActiveEngine`, `getEngine`) reads the cached `operational` verdict
+ * off the same instance. Lazily created so non-COM runs never construct it.
+ */
+let comEngineSingleton: ComDocumentEngine | null = null;
+
+/** Return the singleton host-runtime engine, creating it on first use. */
+function getComEngine(): ComDocumentEngine {
+  if (comEngineSingleton === null) {
+    comEngineSingleton = new ComDocumentEngine();
+  }
+  return comEngineSingleton;
+}
+
+/**
+ * Construct (but do not warm) the engine instance for a concrete name. The
+ * host-runtime engine is the cached singleton (so its handshake state persists);
+ * the WASM engine is stateless and freshly constructed.
  */
 function constructEngine(concreteName: string): DocumentEngine {
   if (concreteName === COM_ENGINE_NAME) {
-    return new ComDocumentEngine();
+    return getComEngine();
   }
   return new WasmDocumentEngine();
 }
 
 /**
- * Decide whether the host-runtime engine should be selected right now.
+ * Decide whether the host-runtime engine should be selected right now,
+ * synchronously. Two conditions must both hold: (1) its capability probe
+ * reports AVAILABLE, and (2) the engine instance is `operational`.
  *
- * Two conditions must both hold: (1) its capability probe reports AVAILABLE,
- * and (2) the engine implementation is `operational` — i.e. its document
- * methods are actually wired. In this phase the host-runtime engine is a slot
- * (`operational === false`), so this returns false even when the runtime is
- * detected, and automatic selection falls back to the WASM engine. The
- * `operational` flag is the single source of truth, so when live driving
- * lands this gate opens automatically with no further change here.
+ * `operational` is gated on opt-in (`RHWP_COM=1`) AND a *cached successful
+ * handshake* (ADR-0008). Because the handshake is async, this synchronous gate
+ * returns false until `ensureEngine` has run the handshake on the singleton. So
+ * automatic selection conservatively stays on WASM until the host runtime is
+ * verified reachable — never picking an unverified engine.
  */
 function comSelectable(): boolean {
   if (probeComRuntime().status !== "AVAILABLE") {
     return false;
   }
-  return constructEngine(COM_ENGINE_NAME).operational;
+  return getComEngine().operational;
 }
 
 /**
@@ -276,6 +296,20 @@ function resolveEngineName(name?: string): string {
  * throw RhwpError(other, UNKNOWN_ENGINE).
  */
 export async function ensureEngine(name?: string): Promise<DocumentEngine> {
+  // When the host-runtime engine is requested (explicitly or via "auto"/"com")
+  // and the user has opted in on an AVAILABLE host, run the async handshake on
+  // the singleton BEFORE resolving the concrete name. This flips the singleton's
+  // cached `operational` so the (synchronous) `resolveEngineName` can then select
+  // it. A failed handshake leaves `operational` false and selection falls back
+  // to WASM — the ADR-0007 fallback semantics, now handshake-gated.
+  if (
+    (name === undefined || name === "auto" || name === COM_ENGINE_NAME) &&
+    isComOptedIn() &&
+    probeComRuntime().status === "AVAILABLE"
+  ) {
+    await getComEngine().ensureHandshake();
+  }
+
   const resolved = resolveEngineName(name);
 
   const existing = engineRegistry.get(resolved);
@@ -302,6 +336,21 @@ export async function ensureEngine(name?: string): Promise<DocumentEngine> {
  */
 export function resolveActiveEngine(): string {
   return resolveEngineName("auto");
+}
+
+/**
+ * Run the host-runtime engine's `ping` handshake once (idempotent, cached) when
+ * the user has opted in on an AVAILABLE host, then report whether it is now
+ * operational. A no-op returning false when opt-in is off or the host is not
+ * AVAILABLE — no subprocess work happens in that case. Used by the capability
+ * report so `hwp_engine_status` reflects the *verified* operability, not just
+ * the registry presence. Never throws.
+ */
+export async function ensureComHandshake(): Promise<boolean> {
+  if (!isComOptedIn() || probeComRuntime().status !== "AVAILABLE") {
+    return false;
+  }
+  return getComEngine().ensureHandshake();
 }
 
 /**
@@ -342,4 +391,8 @@ export function __resetForTests(): void {
   warmPromise = null;
   warmDurationMs = null;
   engineRegistry.clear();
+  // Dispose + drop the host-runtime singleton so its cached handshake state
+  // (and any spawned helper) does not leak across tests.
+  void comEngineSingleton?.dispose();
+  comEngineSingleton = null;
 }

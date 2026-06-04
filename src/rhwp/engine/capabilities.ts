@@ -21,7 +21,7 @@
  * actually driving it is a later, separately-gated capability.
  */
 
-import { getRhwp, resolveActiveEngine } from "../loader.js";
+import { ensureComHandshake, getRhwp, resolveActiveEngine } from "../loader.js";
 import type {
   EngineCapabilityEntry,
   EngineCapabilityReport,
@@ -41,6 +41,46 @@ export interface ComProbeResult {
   status: EngineStatus;
   version?: string;
   detail: string;
+}
+
+/**
+ * Environment-variable name that opts the host-runtime engine in. The
+ * automation path is OFF by default (ADR-0008): it drives a live document on
+ * an interactive desktop and so must be an explicit user choice, never a
+ * silent default. Set to "1" to opt in.
+ */
+export const COM_OPT_IN_ENV = "RHWP_COM";
+
+/** True when the user has opted the host-runtime engine in via the env flag. */
+export function isComOptedIn(): boolean {
+  return process.env[COM_OPT_IN_ENV] === "1";
+}
+
+/**
+ * Best-effort check that a Python interpreter is present AND the optional
+ * automation wrapper (`pyhwpx`) imports — WITHOUT creating the live automation
+ * object. We run `python -c "import pyhwpx"` with a short timeout and read only
+ * the exit code; importing the wrapper does not instantiate the host object,
+ * so this stays non-blocking. Any failure (no interpreter, wrapper missing,
+ * timeout) returns false. Never throws.
+ */
+export function probePythonWrapper(): boolean {
+  if (process.platform !== "win32") {
+    return false;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+    const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
+    const interpreter = process.env.RHWP_PYTHON ?? "python";
+    execFileSync(interpreter, ["-c", "import pyhwpx"], {
+      stdio: ["ignore", "ignore", "ignore"],
+      windowsHide: true,
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -197,18 +237,41 @@ function wasmEntry(): EngineCapabilityEntry {
 
 /**
  * Build the COM engine capability entry from the host-runtime probe.
+ *
+ * The `status` stays exactly the registry-derived `EngineStatus` (so the public
+ * output schema is unchanged), while `detail` is enriched with the opt-in flag
+ * and the optional Python-wrapper presence — purely advisory text the existing
+ * optional `detail` field already carries. This keeps the host-runtime entry
+ * honest about *why* it is or isn't selectable without changing the schema.
  */
 function comEntry(): EngineCapabilityEntry {
   const probe = probeComRuntime();
   const entry: EngineCapabilityEntry = {
     name: COM_ENGINE_NAME,
     status: probe.status,
-    detail: probe.detail,
+    detail: comDetail(probe),
   };
   if (probe.version !== undefined) {
     entry.version = probe.version;
   }
   return entry;
+}
+
+/**
+ * Compose the host-runtime `detail` string: the registry-probe detail plus the
+ * opt-in flag and, when the registration is present, whether the Python helper
+ * wrapper imports. The Python probe is skipped unless the registration is found
+ * and the user has opted in, so a default (non-opt-in) run does no subprocess
+ * work here.
+ */
+function comDetail(probe: ComProbeResult): string {
+  const optedIn = isComOptedIn();
+  const parts = [probe.detail, `opt-in=${optedIn ? "on" : "off"} (${COM_OPT_IN_ENV})`];
+  if (probe.status === "AVAILABLE" && optedIn) {
+    const wrapper = probePythonWrapper();
+    parts.push(`python-wrapper=${wrapper ? "importable" : "missing"}`);
+  }
+  return parts.join("; ");
 }
 
 /**
@@ -225,6 +288,16 @@ function comEntry(): EngineCapabilityEntry {
  * defensive.
  */
 export async function engineCapabilities(): Promise<EngineCapabilityReport> {
+  // When the host runtime is opted-in and AVAILABLE, run the (cached, idempotent)
+  // helper handshake first so `active`/`fallback_reason` below reflect *verified*
+  // operability rather than mere registry presence. No-op (and no subprocess
+  // work) when opt-in is off or the host is not AVAILABLE. Never throws.
+  try {
+    await ensureComHandshake();
+  } catch {
+    // Defensive — the handshake helper is total, but never let the report fail.
+  }
+
   const wasm = wasmEntry();
   const com = comEntry();
 
@@ -244,10 +317,13 @@ export async function engineCapabilities(): Promise<EngineCapabilityReport> {
   }
 
   // Active is the WASM fallback. Explain why the host-runtime engine was not
-  // chosen: detection status when unavailable, or slot phase when detected.
+  // chosen: detection status when unavailable, or — when detected — that it is
+  // not yet operational because opt-in is off or the helper handshake has not
+  // succeeded (ADR-0008). The "not yet operational" phrasing is preserved so
+  // detected-but-gated stays the stable signal callers key on.
   const reason =
     com.status === "AVAILABLE"
-      ? `engine '${COM_ENGINE_NAME}' is detected but not yet operational (live document driving is slotted for a later phase)`
+      ? `engine '${COM_ENGINE_NAME}' is detected but not yet operational (${com.detail})`
       : `engine '${COM_ENGINE_NAME}' is ${com.status}: ${com.detail ?? "no detail"}`;
 
   return { engines, active, fallback_reason: reason };
