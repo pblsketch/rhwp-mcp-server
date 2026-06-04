@@ -302,13 +302,45 @@ export async function inferCellLabelWithSource(
 export const LABEL_LIKE_MAX_LEN = 25;
 
 /**
+ * Phrases that are short enough to pass the length test but are NOT field
+ * labels, so a blank beside them is not an input slot.
+ *
+ * - Addressee / closing lines end a document; the blank beside
+ *   "○○○ 귀하" / "○○○ 귀중" is a recipient line, not a value field.
+ * - A bare document-title word ("…신청서", "…동의서") sits in the title band;
+ *   the blank beside it is title spacing, not an input.
+ *
+ * Matched only as a SUFFIX of the whole collapsed text so genuine labels that
+ * merely contain the word ("신청서 번호", "동의 여부") are not rejected.
+ */
+const NON_LABEL_SUFFIXES = [
+  "귀하",
+  "귀중",
+  "님께",
+  "드림",
+  "올림",
+  "신청서",
+  "동의서",
+  "보고서",
+  "계획서",
+  "확인서",
+  "증명서",
+  "통지서",
+  "안내문",
+  "서약서",
+];
+
+/**
  * Is `text` short enough (after whitespace collapse) to read as a label and
- * not a content paragraph? Empty text is not label-like.
+ * not a content paragraph, AND not an obvious non-label phrase (addressee or
+ * document title)? Empty text is not label-like.
  */
 export function isLabelLike(text: string): boolean {
   const t = collapseWhitespace(text).trim();
   if (t.length === 0) return false;
-  return t.length <= LABEL_LIKE_MAX_LEN;
+  if (t.length > LABEL_LIKE_MAX_LEN) return false;
+  if (NON_LABEL_SUFFIXES.some((suffix) => t.endsWith(suffix))) return false;
+  return true;
 }
 
 /**

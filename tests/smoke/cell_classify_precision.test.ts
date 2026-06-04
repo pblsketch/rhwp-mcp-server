@@ -67,6 +67,22 @@ describe("isLabelLike — label vs content cutoff (pure)", () => {
     // 5 visible chars + collapsed spaces — well under the cutoff.
     expect(isLabelLike("이  름   :")).toBe(true);
   });
+
+  it("rejects short non-label phrases (addressee / document title)", () => {
+    // Addressee/closing lines: the blank beside them is a recipient line.
+    expect(isLabelLike("수원남부경찰서장 귀하")).toBe(false);
+    expect(isLabelLike("교육감 귀중")).toBe(false);
+    expect(isLabelLike("홍길동 드림")).toBe(false);
+    // Bare document-title words: title band, not a field label.
+    expect(isLabelLike("개인정보 수집·이용 동의서")).toBe(false);
+    expect(isLabelLike("참가 신청서")).toBe(false);
+  });
+
+  it("keeps genuine labels that merely contain a title word", () => {
+    // The suffix match is whole-text only, so these stay label-like.
+    expect(isLabelLike("신청서 번호")).toBe(true);
+    expect(isLabelLike("동의 여부")).toBe(true);
+  });
 });
 
 describe("inferCellLabelWithSource — value parity + provenance", () => {
